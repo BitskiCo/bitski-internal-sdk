@@ -1,24 +1,18 @@
 # syntax=docker/dockerfile:1
 
 ARG RUNTIME_BASE=registry.access.redhat.com/ubi8/ubi
-ARG RUST_BASE=base
+
 ARG DEVCONTAINER_BASE=rust
-
-ARG USERNAME
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
-ARG DOCKER_COMPOSE_VERSION
-ARG OC_VERSION
-ARG RUST_VERSION
-ARG ZSH_VERSION
-
-ARG DEFAULT_SHELL=/bin/zsh
+ARG RUST_BASE=runtime
 
 #############################################################################
 # Base container                                                            #
 #############################################################################
-FROM $RUNTIME_BASE AS base
+FROM $RUNTIME_BASE AS runtime
+
+ARG USERNAME
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
 
 # Install system dependencies
 RUN --mount=target=/usr/local/bin/setup-ubi.sh,source=bin/setup-ubi.sh \
@@ -29,6 +23,9 @@ RUN --mount=target=/usr/local/bin/setup-ubi.sh,source=bin/setup-ubi.sh \
 # Rust SDK container                                                        #
 #############################################################################
 FROM $RUST_BASE AS rust
+
+ARG USERNAME
+ARG RUST_VERSION
 
 ENV CARGO_HOME=/usr/local/cargo
 ENV RUSTUP_HOME=/usr/local/rustup
@@ -43,8 +40,9 @@ RUN --mount=target=/usr/local/bin/setup-rust.sh,source=bin/setup-rust.sh \
     setup-rust.sh
 
 # Install Diesel client
-RUN --mount=type=cache,target=/var/cache/cargo \
+RUN --mount=type=cache,target=/var/cache/cargo,uid=$USER_UID \
     su $USERNAME -c ' \
+    CARGO_HOME=/var/cache/cargo \
     cargo install --no-default-features --features postgres \
     --root /usr/local/cargo \
     --target-dir /var/cache/cargo/target \
@@ -54,6 +52,12 @@ RUN --mount=type=cache,target=/var/cache/cargo \
 # Devcontainer container                                                    #
 #############################################################################
 FROM $DEVCONTAINER_BASE AS devcontainer
+
+ARG DEFAULT_SHELL=/bin/zsh
+
+ARG DOCKER_COMPOSE_VERSION
+ARG OC_VERSION
+ARG ZSH_VERSION
 
 ENV SHELL=$DEFAULT_SHELL
 ENV DOCKER_BUILDKIT=1

@@ -10,11 +10,11 @@
 
 set -e
 
-_=${USERNAME:="root"}
-_=${USER_UID:="1000"}
-_=${USER_GID:="1000"}
+: ${USERNAME:=root}
+: ${USER_UID:=1000}
+: ${USER_GID:=1000}
 
-if [[ "${USERNAME}" -eq "root" ]]; then
+if [[ "$USERNAME" == "root" ]]; then
     USERNAME=root
     USER_UID=0
     USER_GID=0

@@ -9,13 +9,13 @@
 
 set -e
 
-export CARGO_HOME=${CARGO_HOME:-"/usr/local/cargo"}
-export RUSTUP_HOME=${RUSTUP_HOME:-"/usr/local/rustup"}
-_=${USERNAME:="root"}
-_=${UPDATE_RC:="true"}
-_=${RUST_VERSION:="latest"}
-_=${RUSTUP_PROFILE:="minimal"}
-_=${SCCACHE_VERSION:="0.2.15"}
+export CARGO_HOME=${CARGO_HOME:-/usr/local/cargo}
+export RUSTUP_HOME=${RUSTUP_HOME:-/usr/local/rustup}
+: ${USERNAME:=root}
+: ${UPDATE_RC:=true}
+: ${RUST_VERSION:=latest}
+: ${RUSTUP_PROFILE:=minimal}
+: ${SCCACHE_VERSION:=0.2.15}
 
 # Figure out correct version of a three part version number is not passed
 find_version_from_git_tags() {
@@ -128,8 +128,8 @@ mv sccache /usr/local/bin
 export PATH=${CARGO_HOME}/bin:${PATH}
 echo "Installing common Rust dependencies..."
 rustup component add clippy rls rust-analysis rust-src rustfmt
-for RUST_VERSION in "${RUSTUP_INSTALL_TOOLCHAINS[@]}"; do
-    rustup toolchain install "$RUST_VERSION" --component clippy rls rust-analysis rust-src rustfmt
+for rust_version in "${RUSTUP_INSTALL_TOOLCHAINS[@]}"; do
+    rustup toolchain install "$rust_version" --component clippy rls rust-analysis rust-src rustfmt
 done
 
 # Add CARGO_HOME, RUSTUP_HOME and bin directory into bashrc/zshrc files (unless disabled)

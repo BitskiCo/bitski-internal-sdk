@@ -2,8 +2,8 @@
 
 set -e
 
-_=${USERNAME:=root}
-_=${ZSH_VERSION:=5.8}
+: ${USERNAME:=root}
+: ${ZSH_VERSION:=5.8}
 
 # Install zsh
 # https://www.zsh.org

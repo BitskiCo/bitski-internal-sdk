@@ -2,8 +2,8 @@
 
 set -e
 
-_=${USERNAME:=root}
-_=${OC_VERSION:=4.9}
+: ${USERNAME:=root}
+: ${OC_VERSION:=4.9}
 
 # Install OpenShift CLI
 # https://github.com/openshift/oc

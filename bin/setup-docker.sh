@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-_=${DOCKER_COMPOSE_VERSION:="2.2.3"}
+: ${DOCKER_COMPOSE_VERSION:=2.2.3}
 
 cd /tmp/docker
 

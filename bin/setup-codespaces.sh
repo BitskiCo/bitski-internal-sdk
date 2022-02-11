@@ -10,17 +10,9 @@
 
 set -e
 
-_=${USERNAME:="root"}
-_=${USER_UID:="1000"}
-_=${USER_GID:="1000"}
-
-if [[ "${USERNAME}" -eq "root" ]]; then
-    USERNAME=root
-    USER_UID=0
-    USER_GID=0
-elif [[ -z "${USERNAME}" ]]; then
-    USERNAME=vscode
-fi
+: ${USERNAME:=root}
+: ${USER_UID:=1000}
+: ${USER_GID:=1000}
 
 # .bashrc/.zshrc snippet
 rc_snippet="$(cat << 'EOF'

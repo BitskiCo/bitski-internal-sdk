@@ -15,6 +15,7 @@ _=${USERNAME:="root"}
 _=${UPDATE_RC:="true"}
 _=${RUST_VERSION:="latest"}
 _=${RUSTUP_PROFILE:="minimal"}
+_=${SCCACHE_VERSION:="0.2.15"}
 
 # Figure out correct version of a three part version number is not passed
 find_version_from_git_tags() {
@@ -76,6 +77,8 @@ case ${download_architecture} in
     ;;
 esac
 
+cd /tmp/rustup
+
 # Install Rust dependencies
 dnf repoquery --deplist rust | grep provider | cut -d':' -f2 | xargs dnf install -y
 
@@ -94,26 +97,37 @@ IFS=', ' read -r -a RUSTUP_INSTALL_TOOLCHAINS <<< "$RUST_VERSION"
 RUST_VERSION="${RUSTUP_INSTALL_TOOLCHAINS[0]}"
 RUSTUP_INSTALL_TOOLCHAINS=("${RUSTUP_INSTALL_TOOLCHAINS[@]:1}")
 
+# Download and verify rustup sha
+echo "Installing Rust..."
 if [ "${RUST_VERSION}" != "latest" ] && [ "${RUST_VERSION}" != "lts" ] && [ "${RUST_VERSION}" != "stable" ]; then
     find_version_from_git_tags RUST_VERSION "https://github.com/rust-lang/rust" "tags/"
     default_toolchain_arg="--default-toolchain ${RUST_VERSION}"
 fi
-echo "Installing Rust..."
-# Download and verify rustup sha
-mkdir -p /tmp/rustup/target/${download_architecture}-unknown-linux-gnu/release/
-curl -sSL --proto '=https' --tlsv1.2 "https://static.rust-lang.org/rustup/dist/${download_architecture}-unknown-linux-gnu/rustup-init" -o /tmp/rustup/target/${download_architecture}-unknown-linux-gnu/release/rustup-init
-curl -sSL --proto '=https' --tlsv1.2 "https://static.rust-lang.org/rustup/dist/${download_architecture}-unknown-linux-gnu/rustup-init.sha256" -o /tmp/rustup/rustup-init.sha256
-cd /tmp/rustup
+RUSTUP_INIT_FILE="target/${download_architecture}-unknown-linux-gnu/release/rustup-init"
+if [[ ! -f "$RUSTUP_INIT_FILE" || ! -f rustup-init.sha256 ]]; then
+    mkdir -p target/${download_architecture}-unknown-linux-gnu/release/
+    curl -sSL --proto '=https' --tlsv1.2 "https://static.rust-lang.org/rustup/dist/${download_architecture}-unknown-linux-gnu/rustup-init" -o "$RUSTUP_INIT_FILE"
+    curl -sSL --proto '=https' --tlsv1.2 "https://static.rust-lang.org/rustup/dist/${download_architecture}-unknown-linux-gnu/rustup-init.sha256" -o rustup-init.sha256
+fi
 sha256sum -c rustup-init.sha256
-chmod +x target/${download_architecture}-unknown-linux-gnu/release/rustup-init
-target/${download_architecture}-unknown-linux-gnu/release/rustup-init -y --no-modify-path --profile ${RUSTUP_PROFILE} ${default_toolchain_arg}
-cd ~
-rm -rf /tmp/rustup || true
+chmod +x "$RUSTUP_INIT_FILE"
+"$RUSTUP_INIT_FILE" -y --no-modify-path --profile ${RUSTUP_PROFILE} ${default_toolchain_arg}
+
+echo "Installing sccache..."
+SCCACHE_ARCHIVE="sccache-v${SCCACHE_VERSION}-${download_architecture}-unknown-linux-musl.tar.gz"
+if [[ ! -f "$SCCACHE_ARCHIVE" || ! -f "${SCCACHE_ARCHIVE}.sha256" ]]; then
+    curl -sSL --proto '=https' --tlsv1.2 -O "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${SCCACHE_ARCHIVE}"
+    curl -sSL --proto '=https' --tlsv1.2 -O "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${SCCACHE_ARCHIVE}.sha256"
+    echo -n " ${SCCACHE_ARCHIVE}" >> "${SCCACHE_ARCHIVE}.sha256"
+fi
+sha256sum -c "${SCCACHE_ARCHIVE}.sha256"
+tar --strip-components=1 '*/sccache' -xf "$SCCACHE_ARCHIVE"
+chmod +x sccache
+mv sccache /usr/local/bin
 
 export PATH=${CARGO_HOME}/bin:${PATH}
 echo "Installing common Rust dependencies..."
 rustup component add clippy rls rust-analysis rust-src rustfmt
-
 for RUST_VERSION in "${RUSTUP_INSTALL_TOOLCHAINS[@]}"; do
     rustup toolchain install "$RUST_VERSION" --component clippy rls rust-analysis rust-src rustfmt
 done
@@ -125,6 +139,9 @@ export CARGO_HOME="${CARGO_HOME}"
 if [[ "\${PATH}" != *"\${CARGO_HOME}/bin"* ]]; then export PATH="\${CARGO_HOME}/bin:\${PATH}"; fi
 EOF
 )"
+
+cd ~
+rm -rf /tmp/rustup || true
 
 # Make files writable for rustlang group
 chmod -R g+r+w "${RUSTUP_HOME}" "${CARGO_HOME}"

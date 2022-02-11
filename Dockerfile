@@ -53,6 +53,9 @@ FROM $DEVCONTAINER_BASE AS devcontainer
 
 ENV SHELL=$DEFAULT_SHELL
 
+# Always sign Git commits
+RUN git config --system commit.gpgsign true
+
 # Install zsh
 RUN --mount=target=/usr/local/bin/setup-zsh.sh,source=bin/setup-zsh.sh \
     --mount=type=cache,target=/tmp/zsh \

@@ -7,6 +7,7 @@ ARG USERNAME
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
+ARG DOCKER_COMPOSE_VERSION
 ARG OC_VERSION
 ARG RUST_VERSION
 ARG ZSH_VERSION
@@ -64,6 +65,11 @@ RUN --mount=target=/usr/local/bin/setup-zsh.sh,source=bin/setup-zsh.sh \
 # Setup GitHub Codespaces themes
 RUN --mount=target=/usr/local/bin/setup-codespaces.sh,source=bin/setup-codespaces.sh \
     setup-codespaces.sh
+
+# Install Docker
+RUN --mount=target=/usr/local/bin/setup-docker.sh,source=bin/setup-docker.sh \
+    --mount=type=cache,target=/tmp/docker \
+    setup-docker.sh
 
 # Install OpenShift CLI
 RUN --mount=target=/usr/local/bin/setup-oc.sh,source=bin/setup-oc.sh \

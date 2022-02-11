@@ -53,6 +53,7 @@ RUN --mount=type=cache,target=/var/cache/cargo \
 FROM $DEVCONTAINER_BASE AS devcontainer
 
 ENV SHELL=$DEFAULT_SHELL
+ENV DOCKER_BUILDKIT=1
 
 # Always sign Git commits
 RUN git config --system commit.gpgsign true

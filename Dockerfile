@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 
+ARG RUNTIME_BASE=registry.access.redhat.com/ubi8/ubi
 ARG RUST_BASE=base
 ARG DEVCONTAINER_BASE=rust
 
@@ -17,7 +18,7 @@ ARG DEFAULT_SHELL=/bin/zsh
 #############################################################################
 # Base container                                                            #
 #############################################################################
-FROM registry.access.redhat.com/ubi8/ubi AS base
+FROM $RUNTIME_BASE AS base
 
 # Install system dependencies
 RUN --mount=target=/usr/local/bin/setup-ubi.sh,source=bin/setup-ubi.sh \

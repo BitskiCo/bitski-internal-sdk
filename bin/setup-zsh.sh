@@ -48,3 +48,6 @@ su $USERNAME -c 'git clone --depth=1 \
 
 su $USERNAME -c 'cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc'
 su $USERNAME -c 'cd ~/.oh-my-zsh && git repack -adf --depth=1 --window=1'
+
+su "$USERNAME" -c \
+    'sed -i "/plugins=\(.*\)/a plugins+=(docker docker-compose rust)" ~/.zshrc'

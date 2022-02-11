@@ -58,15 +58,6 @@ ENV DOCKER_BUILDKIT=1
 # Always sign Git commits
 RUN git config --system commit.gpgsign true
 
-# Install zsh
-RUN --mount=target=/usr/local/bin/setup-zsh.sh,source=bin/setup-zsh.sh \
-    --mount=type=cache,target=/tmp/zsh \
-    setup-zsh.sh
-
-# Setup GitHub Codespaces themes
-RUN --mount=target=/usr/local/bin/setup-codespaces.sh,source=bin/setup-codespaces.sh \
-    setup-codespaces.sh
-
 # Install Docker
 RUN --mount=target=/usr/local/bin/setup-docker.sh,source=bin/setup-docker.sh \
     --mount=type=cache,target=/tmp/docker \
@@ -76,6 +67,15 @@ RUN --mount=target=/usr/local/bin/setup-docker.sh,source=bin/setup-docker.sh \
 RUN --mount=target=/usr/local/bin/setup-oc.sh,source=bin/setup-oc.sh \
     --mount=type=cache,target=/tmp/oc \
     setup-oc.sh
+
+# Install zsh
+RUN --mount=target=/usr/local/bin/setup-zsh.sh,source=bin/setup-zsh.sh \
+    --mount=type=cache,target=/tmp/zsh \
+    setup-zsh.sh
+
+# Setup GitHub Codespaces themes
+RUN --mount=target=/usr/local/bin/setup-codespaces.sh,source=bin/setup-codespaces.sh \
+    setup-codespaces.sh
 
 USER $USERNAME
 WORKDIR /workspace

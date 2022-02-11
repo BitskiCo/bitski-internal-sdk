@@ -53,7 +53,7 @@ RUN --mount=type=cache,target=/var/cache/cargo,uid=$USER_UID \
 #############################################################################
 FROM $DEVCONTAINER_BASE AS devcontainer
 
-ARG DEFAULT_SHELL=/bin/zsh
+ARG DEFAULT_SHELL=/usr/local/bin/zsh
 
 ARG DOCKER_COMPOSE_VERSION
 ARG OC_VERSION

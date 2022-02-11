@@ -16,22 +16,22 @@ jobs:
             # TODO(jacob): configure cross-compilation
             # qemu_platforms: amd64,arm64
             # docker_platforms: linux/amd64,linux/arm64
-            rust: latest,1.58,1.57,1.56
+            rust: latest,1.58.1,1.57.0,1.56.1
             username: bitski
 
           - tag: |
               rust
               rust-1.58
             target: rust
-            rust: "1.58"
+            rust: "1.58.1"
 
           - tag: rust-1.57
             target: rust
-            rust: "1.57"
+            rust: "1.57.0"
 
           - tag: rust-1.56
             target: rust
-            rust: "1.56"
+            rust: "1.56.1"
 
     runs-on: ubuntu-latest
     env:

@@ -43,9 +43,11 @@ RUN --mount=target=/usr/local/bin/setup-rust.sh,source=bin/setup-rust.sh \
 
 # Install Diesel client
 RUN --mount=type=cache,target=/var/cache/cargo \
-    CARGO_HOME=/var/cache/cargo \
-    su $USERNAME -c \
-    'cargo install --no-default-features --features postgres --root /usr/local/cargo diesel_cli'
+    su $USERNAME -c ' \
+    cargo install --no-default-features --features postgres \
+    --root /usr/local/cargo \
+    --target-dir /var/cache/cargo/target \
+    diesel_cli'
 
 #############################################################################
 # Devcontainer container                                                    #

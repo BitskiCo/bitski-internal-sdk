@@ -24,8 +24,14 @@ RUN --mount=target=/usr/local/bin/setup-ubi.sh,source=bin/setup-ubi.sh \
 #############################################################################
 FROM $RUST_BASE AS rust
 
-ARG USERNAME
 ARG RUST_VERSION
+
+# Configure sccache
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+ARG SCCACHE_BUCKET
+ARG SCCACHE_S3_USE_SSL
+ARG RUSTC_WRAPPER
 
 ENV CARGO_HOME=/usr/local/cargo
 ENV RUSTUP_HOME=/usr/local/rustup
@@ -39,14 +45,17 @@ RUN --mount=target=/usr/local/bin/setup-rust.sh,source=bin/setup-rust.sh \
     --mount=type=cache,target=/var/cache/yum \
     setup-rust.sh
 
+# Install cargo-cache
+RUN --mount=type=cache,target=/var/cache/cargo \
+    CARGO_HOME=/var/cache/cargo \
+    cargo install --root /usr/local \
+    --target-dir /var/cache/cargo/target cargo-cache
+
 # Install Diesel client
-RUN --mount=type=cache,target=/var/cache/cargo,uid=$USER_UID \
-    su $USERNAME -c ' \
+RUN --mount=type=cache,target=/var/cache/cargo \
     CARGO_HOME=/var/cache/cargo \
     cargo install --no-default-features --features postgres \
-    --root /usr/local/cargo \
-    --target-dir /var/cache/cargo/target \
-    diesel_cli'
+    --root /usr/local --target-dir /var/cache/cargo/target diesel_cli
 
 #############################################################################
 # Devcontainer container                                                    #

@@ -16,22 +16,22 @@ jobs:
             # TODO(jacob): configure cross-compilation
             # qemu_platforms: amd64,arm64
             # docker_platforms: linux/amd64,linux/arm64
-            rust: latest,1.58.1,1.57.0,1.56.1
+            rust: latest,1.58,1.57,1.56
             username: bitski
 
           - tag: |
               rust
               rust-1.58
             target: rust
-            rust: "1.58.1"
+            rust: "1.58"
 
           - tag: rust-1.57
             target: rust
-            rust: "1.57.0"
+            rust: "1.57"
 
           - tag: rust-1.56
             target: rust
-            rust: "1.56.1"
+            rust: "1.56"
 
     runs-on: ubuntu-latest
     env:
@@ -89,6 +89,13 @@ jobs:
           build-args: |
             USERNAME=${{ matrix.username }}
             RUST_VERSION=${{ matrix.rust }}
+
+            AWS_ACCESS_KEY_ID=${{ secrets.SCCACHE_AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.SCCACHE_AWS_SECRET_ACCESS_KEY }}
+            SCCACHE_BUCKET=${{ secrets.SCCACHE_BUCKET }}
+            SCCACHE_S3_USE_SSL=true
+            RUSTC_WRAPPER=sccache
+
           cache-from: type=gha,scope=${{ env.SCOPE }}
           cache-to: type=gha,scope=${{ env.SCOPE }},mode=max
           platforms: ${{ matrix.docker_platforms }}

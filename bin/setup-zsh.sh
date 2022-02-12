@@ -3,7 +3,7 @@
 set -e
 
 : ${USERNAME:=root}
-: ${ZSH_VERSION:=5.8}
+: ${ZSH_VERSION:=5.8.1}
 : ${SDK_CACHE_DIR:=/var/cache/bitski-internal-sdk}
 
 mkdir -p "$SDK_CACHE_DIR/zsh"

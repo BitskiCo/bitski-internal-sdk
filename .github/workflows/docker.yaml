@@ -17,9 +17,9 @@ jobs:
         include:
           - tag: devcontainer
             target: devcontainer
-            # TODO(jacob): configure cross-compilation
-            # qemu_platforms: amd64,arm64
-            # docker_platforms: linux/amd64,linux/arm64
+            manifest_platforms: |
+              amd64
+              arm64
             rust: latest,1.58,1.57,1.56
             username: bitski
 
@@ -43,6 +43,7 @@ jobs:
       DOCKER_BUILDKIT: "1"
       # github.repository as <account>/<repo>
       IMAGE_NAME: ${{ github.repository }}
+      TAGS: ${{ matrix.tag }}
       # Use docker.io for Docker Hub if empty
       REGISTRY: ghcr.io
 
@@ -50,11 +51,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up QEMU
-        if: matrix.qemu_platforms != null
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: ${{ matrix.qemu_platforms }}
+      - name: Configure image tags for multiarch manifest
+        if: matrix.manifest_platforms
+        run: |
+          set -o xtrace
+
+          ARCH=`uname -m`
+          case $ARCH in
+          amd64 | x86_64) 
+              ARCH=amd64
+              ;;
+          aarch64 | arm64) 
+              ARCH=arm64
+              ;;
+          esac
+
+          TAGS=`echo "$TAGS" | sed "s/\$/-$ARCH/"`
+
+          echo "TAGS=$(printf '%q' "$TAGS")" | tee -a $GITHUB_ENV
 
       # Workaround: https://github.com/docker/build-push-action/issues/461
       - name: Setup Docker buildx
@@ -69,7 +83,7 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: ${{ matrix.tag }}
+          tags: ${{ env.TAGS }}
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
@@ -101,7 +115,43 @@ jobs:
 
           cache-from: type=gha,scope=${{ env.SCOPE }}
           cache-to: type=gha,scope=${{ env.SCOPE }},mode=max
-          platforms: ${{ matrix.docker_platforms }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Create multiarch manifest
+        if: matrix.manifest_platforms
+        env:
+          PLATFORMS: ${{ matrix.manifest_platforms }}
+          BASE_TAGS: ${{ matrix.tag }}
+          BASE_MANIFEST: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        run: |
+          set -o xtrace
+
+          IFS=$'\n' command eval 'PLATFORMS=($PLATFORMS)'
+          IFS=$'\n' command eval 'BASE_TAGS=($BASE_TAGS)'
+          BASE_MANIFEST="${BASE_MANIFEST,,}"
+
+          MANIFESTS=()
+          for BASE_TAG in "${BASE_TAGS[@]}"; do
+            MANIFEST="${BASE_MANIFEST}:${BASE_TAG}"
+
+            AMEND=()
+            for PLATFORM in "${PLATFORMS[@]}"; do
+              IMAGE_NAME="${MANIFEST}-${PLATFORM}"
+              docker pull "$IMAGE_NAME"
+              AMEND+=(--amend "$IMAGE_NAME")
+            done
+
+            docker manifest create "$MANIFEST" "${AMEND[@]}"
+            MANIFESTS+=("$MANIFEST")
+          done
+
+          MANIFESTS=`IFS=$'\n'; echo "${MANIFESTS[*]}"`
+          echo "MANIFESTS=$(printf '%q' "$MANIFESTS")" | tee -a $GITHUB_ENV
+
+      - name: Push multiarch manifest
+        if: github.event_name != 'pull_request' && matrix.manifest_platforms
+        run: |
+          set -o xtrace
+          echo "$MANIFESTS" | xargs -n1 docker manifest push

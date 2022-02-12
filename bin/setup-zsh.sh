@@ -4,12 +4,13 @@ set -e
 
 : ${USERNAME:=root}
 : ${ZSH_VERSION:=5.8}
+: ${SDK_CACHE_DIR:=/var/cache/bitski-internal-sdk}
+
+mkdir -p "$SDK_CACHE_DIR/zsh"
+cd "$SDK_CACHE_DIR"
 
 # Install zsh
 # https://www.zsh.org
-
-mkdir -p /tmp/zsh
-cd /tmp/zsh
 
 FILE="zsh-${ZSH_VERSION}.tar.xz"
 if [[ ! -f "$FILE" || ! -f "${FILE}.asc" ]]; then
@@ -32,9 +33,6 @@ cd "zsh-${ZSH_VERSION}"
 make
 make install
 
-cd /
-rm -rf /tmp/zsh || true
-
 # Install oh-my-zsh
 # https://github.com/ohmyzsh/ohmyzsh
 
@@ -49,5 +47,8 @@ su $USERNAME -c 'git clone --depth=1 \
 su $USERNAME -c 'cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc'
 su $USERNAME -c 'cd ~/.oh-my-zsh && git repack -adf --depth=1 --window=1'
 
-su "$USERNAME" -c \
+su $USERNAME -c \
     'sed -i "/plugins=\(.*\)/a plugins+=(docker docker-compose rust)" ~/.zshrc'
+
+cd /
+rm -rf "$SDK_CACHE_DIR" || true

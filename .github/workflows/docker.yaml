@@ -94,7 +94,6 @@ jobs:
             AWS_SECRET_ACCESS_KEY=${{ secrets.SCCACHE_AWS_SECRET_ACCESS_KEY }}
             SCCACHE_BUCKET=${{ secrets.SCCACHE_BUCKET }}
             SCCACHE_S3_USE_SSL=true
-            RUSTC_WRAPPER=sccache
 
           cache-from: type=gha,scope=${{ env.SCOPE }}
           cache-to: type=gha,scope=${{ env.SCOPE }},mode=max

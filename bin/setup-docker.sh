@@ -1,9 +1,12 @@
 #!/bin/sh
+
 set -e
 
 : ${DOCKER_COMPOSE_VERSION:=2.2.3}
+: ${SDK_CACHE_DIR:=/var/cache/bitski-internal-sdk}
 
-cd /tmp/docker
+mkdir -p "$SDK_CACHE_DIR/docker"
+cd "$SDK_CACHE_DIR"
 
 # Install Docker
 # https://www.docker.com
@@ -32,4 +35,5 @@ chmod +x "$DOCKER_COMPOSE_FILE"
 mkdir -p /usr/local/lib/docker/cli-plugins
 mv "$DOCKER_COMPOSE_FILE" /usr/local/lib/docker/cli-plugins/docker-compose
 
-rm -rf /tmp/docker || true
+cd /
+rm -rf "$SDK_CACHE_DIR" || true

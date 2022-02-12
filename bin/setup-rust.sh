@@ -15,7 +15,10 @@ export RUSTUP_HOME=${RUSTUP_HOME:-/usr/local/rustup}
 : ${UPDATE_RC:=true}
 : ${RUST_VERSION:=latest}
 : ${RUSTUP_PROFILE:=minimal}
-: ${SCCACHE_VERSION:=0.2.15}
+: ${SDK_CACHE_DIR:=/var/cache/bitski-internal-sdk}
+
+mkdir -p "$SDK_CACHE_DIR/rust"
+cd "$SDK_CACHE_DIR"
 
 # Figure out correct version of a three part version number is not passed
 find_version_from_git_tags() {
@@ -77,8 +80,6 @@ case ${download_architecture} in
     ;;
 esac
 
-cd /tmp/rustup
-
 # Install Rust dependencies
 dnf repoquery --deplist rust | grep provider | cut -d':' -f2 | xargs dnf install -y
 
@@ -113,18 +114,6 @@ sha256sum -c rustup-init.sha256
 chmod +x "$RUSTUP_INIT_FILE"
 "$RUSTUP_INIT_FILE" -y --no-modify-path --profile ${RUSTUP_PROFILE} ${default_toolchain_arg}
 
-echo "Installing sccache..."
-SCCACHE_ARCHIVE="sccache-v${SCCACHE_VERSION}-${download_architecture}-unknown-linux-musl.tar.gz"
-if [[ ! -f "$SCCACHE_ARCHIVE" || ! -f "${SCCACHE_ARCHIVE}.sha256" ]]; then
-    curl -sSL --proto '=https' --tlsv1.2 -O "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${SCCACHE_ARCHIVE}"
-    curl -sSL --proto '=https' --tlsv1.2 -O "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${SCCACHE_ARCHIVE}.sha256"
-    echo -n " ${SCCACHE_ARCHIVE}" >> "${SCCACHE_ARCHIVE}.sha256"
-fi
-sha256sum -c "${SCCACHE_ARCHIVE}.sha256"
-tar --strip-components=1 '*/sccache' -xf "$SCCACHE_ARCHIVE"
-chmod +x sccache
-mv sccache /usr/local/bin
-
 export PATH=${CARGO_HOME}/bin:${PATH}
 echo "Installing common Rust dependencies..."
 rustup component add clippy rls rust-analysis rust-src rustfmt
@@ -140,8 +129,8 @@ if [[ "\${PATH}" != *"\${CARGO_HOME}/bin"* ]]; then export PATH="\${CARGO_HOME}/
 EOF
 )"
 
-cd ~
-rm -rf /tmp/rustup || true
-
 # Make files writable for rustlang group
 chmod -R g+r+w "${RUSTUP_HOME}" "${CARGO_HOME}"
+
+cd /
+rm -rf "$SDK_CACHE_DIR" || true

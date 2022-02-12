@@ -1,0 +1,101 @@
+name: Rollback
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/rollback.yaml
+  workflow_call:
+    inputs:
+      registry:
+        description: "Docker registry"
+        default: ghcr.io
+        required: true
+        type: string
+      registry_username:
+        description: "Docker registry username"
+        default: ${{ github.actor }}
+        required: true
+        type: string
+      image_name:
+        description: "Docker image name"
+        # github.repository as <account>/<repo>
+        default: ${{ github.repository }}
+        required: true
+        type: string
+      target_tag:
+        description: "The target image tag to rollback"
+        default: latest
+        required: true
+        type: string
+      rollback_tag:
+        description: "The rollback image tag"
+        default: rollback
+        required: false
+        type: string
+      release_workflow:
+        description: "Release workflow in the same repo to disable"
+        default: Release
+        required: false
+        type: string
+    secrets:
+      registry_password:
+        description: "Docker registry password, defaults to GITHUB_TOKEN"
+        required: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    env:
+      # Use docker.io for Docker Hub if empty
+      REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
+      REGISTRY_USERNAME: ${{ inputs.registry_username || github.actor }}
+      # github.repository as <account>/<repo>
+      IMAGE_NAME: ${{ inputs.image_name || github.repository }}
+      # Image tags
+      TARGET_TAG: ${{ inputs.target_tag || 'latest' }}
+      ROLLBACK_TAG: ${{ inputs.rollback_tag || 'devcontainer' }}
+      # Release workflow
+      RELEASE_WORKFLOW: ${{ inputs.release_workflow || '' }}
+      RELEASE_WORKFLOW_OWNER: ${{ inputs.release_workflow_owner || ':owner' }}
+      RELEASE_WORKFLOW_REPO: ${{ inputs.release_workflow_repo || ':repo' }}
+    permissions:
+      actions: write
+      packages: write
+    steps:
+      - name: Disable release workflow
+        if: github.event_name != 'pull_request' && env.RELEASE_WORKFLOW
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.actions.disableWorkflow({
+              owner: ':owner',
+              repo: ':repo',
+              workflow_id: process.env.RELEASE_WORKFLOW,
+            });
+
+      # Login against a Docker registry
+      # https://github.com/docker/login-action
+      - name: Log into Docker registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+
+      - name: Configure image names
+        run: |
+          IMAGE_NAME="${REGISTRY}/${IMAGE_NAME,,}"
+          echo "IMAGE_NAME=$IMAGE_NAME" | tee -a $GITHUB_ENV
+          echo "TARGET_IMAGE=$REGISTRY/$IMAGE_NAME:$TARGET_TAG" | tee -a $GITHUB_ENV
+          echo "ROLLBACK_IMAGE=$REGISTRY/$IMAGE_NAME:$ROLLBACK_TAG" | tee -a $GITHUB_ENV
+
+      - name: Tag target image
+        run: |
+          set -o xtrace
+
+          docker pull "$ROLLBACK_IMAGE"
+          docker tag "$ROLLBACK_IMAGE" "$TARGET_IMAGE"
+
+      - name: Push target image
+        if: github.event_name != 'pull_request'
+        run: docker push "$TARGET_IMAGE"

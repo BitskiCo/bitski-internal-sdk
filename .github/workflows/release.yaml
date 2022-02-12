@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/release.yaml
+  workflow_call:
+    inputs:
+      registry:
+        description: "Docker registry"
+        default: ghcr.io
+        required: true
+        type: string
+      registry_username:
+        description: "Docker registry username"
+        default: ${{ github.actor }}
+        required: true
+        type: string
+      image_name:
+        description: "Docker image name"
+        default: ${{ github.repository }}
+        required: true
+        type: string
+      source_tag:
+        description: "The source image tag to release"
+        default: main
+        required: true
+        type: string
+      target_tag:
+        description: "The target image tag to release"
+        default: latest
+        required: true
+        type: string
+      rollback_tag:
+        description: "The rollback image tag"
+        default: rollback
+        required: false
+        type: string
+    secrets:
+      registry_password:
+        description: "Docker registry password, defaults to GITHUB_TOKEN"
+        required: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    env:
+      # Use docker.io for Docker Hub if empty
+      REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
+      REGISTRY_USERNAME: ${{ inputs.registry_username || github.actor }}
+      # github.repository as <account>/<repo>
+      IMAGE_NAME: ${{ inputs.image_name || github.repository }}
+      # Image tags
+      SOURCE_TAG: ${{ inputs.source_tag || 'devcontainer' }}
+      TARGET_TAG: ${{ inputs.target_tag || 'latest' }}
+      ROLLBACK_TAG: ${{ inputs.rollback_tag || 'rollback' }}
+    steps:
+      # Login against a Docker registry
+      # https://github.com/docker/login-action
+      - name: Log into Docker registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+
+      - name: Configure image names
+        run: |
+          IMAGE_NAME="${REGISTRY}/${IMAGE_NAME,,}"
+          echo "IMAGE_NAME=$IMAGE_NAME" | tee -a $GITHUB_ENV
+          echo "SOURCE_IMAGE=$REGISTRY/$IMAGE_NAME:$SOURCE_TAG" | tee -a $GITHUB_ENV
+          echo "TARGET_IMAGE=$REGISTRY/$IMAGE_NAME:$TARGET_TAG" | tee -a $GITHUB_ENV
+          echo "ROLLBACK_IMAGE=$REGISTRY/$IMAGE_NAME:$ROLLBACK_TAG" | tee -a $GITHUB_ENV
+
+      - name: Tag target and rollback images
+        run: |
+          set -o xtrace
+
+          if docker pull "$SOURCE_IMAGE"; then
+            SOURCE_ID=`docker inspect --format '{{ .Id }}' "$SOURCE_IMAGE"`
+          else
+            >&2 echo 'No source image found'
+            exit 1
+          fi
+
+          if docker pull "$TARGET_IMAGE"; then
+            TARGET_ID=`docker inspect --format '{{ .Id }}' "$TARGET_IMAGE"`
+            if [[ "$TARGET_ID" == "$SOURCE_ID" ]]; then
+              echo 'Nothing to do: target is the same as source'
+              exit
+            fi
+            docker tag "$TARGET_IMAGE" "$ROLLBACK_IMAGE"
+          else
+            echo "ROLLBACK_IMAGE=" | tee -a $GITHUB_ENV
+          fi
+
+          docker tag "$SOURCE_IMAGE" "$TARGET_IMAGE"
+
+      - name: Push targe and rollback images
+        if: github.event_name != 'pull_request'
+        run: |
+          set -o xtrace
+
+          docker push "$TARGET_IMAGE"
+
+          if [[ -n "$ROLLBACK_IMAGE" ]]; then
+            docker push "$ROLLBACK_IMAGE"
+          fi

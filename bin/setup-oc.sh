@@ -16,7 +16,8 @@ mkdir -p /tmp/oc
 cd /tmp/oc
 
 if [[ ! -d oc ]]; then
-    git clone -b "release-${OC_VERSION}" https://github.com/openshift/oc.git
+    git clone --depth 1 -b "release-${OC_VERSION}" \
+        https://github.com/openshift/oc.git
 fi
 
 cd oc

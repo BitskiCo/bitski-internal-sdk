@@ -9,6 +9,8 @@ set -e
 mkdir -p "$SDK_CACHE_DIR/zsh"
 cd "$SDK_CACHE_DIR"
 
+sccache --show-stats || true
+
 # Install zsh
 # https://www.zsh.org
 
@@ -49,6 +51,8 @@ su $USERNAME -c 'cd ~/.oh-my-zsh && git repack -adf --depth=1 --window=1'
 
 su $USERNAME -c \
     'sed -i "/plugins=\(.*\)/a plugins+=(docker docker-compose rust)" ~/.zshrc'
+
+sccache --stop-server || true
 
 cd /
 rm -rf "$SDK_CACHE_DIR" || true

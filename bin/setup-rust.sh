@@ -20,6 +20,8 @@ export RUSTUP_HOME=${RUSTUP_HOME:-/usr/local/rustup}
 mkdir -p "$SDK_CACHE_DIR/rust"
 cd "$SDK_CACHE_DIR"
 
+sccache --show-stats || true
+
 # Figure out correct version of a three part version number is not passed
 find_version_from_git_tags() {
     local variable_name=$1
@@ -131,6 +133,8 @@ EOF
 
 # Make files writable for rustlang group
 chmod -R g+r+w "${RUSTUP_HOME}" "${CARGO_HOME}"
+
+sccache --stop-server || true
 
 cd /
 rm -rf "$SDK_CACHE_DIR" || true

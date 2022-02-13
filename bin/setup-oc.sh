@@ -9,6 +9,8 @@ set -e
 mkdir -p "$SDK_CACHE_DIR/oc"
 cd "$SDK_CACHE_DIR"
 
+sccache --show-stats || true
+
 # Install OpenShift CLI
 # https://github.com/openshift/oc
 
@@ -28,6 +30,8 @@ cp oc /usr/local/bin
 mkdir -p /etc/bash_completion.d /usr/local/share/zsh/site-functions
 cp contrib/completions/bash/oc /etc/bash_completion.d
 cp contrib/completions/zsh/oc /usr/local/share/zsh/site-functions
+
+sccache --stop-server || true
 
 cd /
 rm -rf "$SDK_CACHE_DIR" || true

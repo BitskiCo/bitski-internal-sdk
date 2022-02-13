@@ -9,37 +9,30 @@ on:
       registry:
         description: "Docker registry"
         default: ghcr.io
-        required: true
         type: string
       registry_username:
         description: "Docker registry username"
         default: ${{ github.actor }}
-        required: true
         type: string
       image_name:
         description: "Docker image name"
         default: ${{ github.repository }}
-        required: true
         type: string
       source_tag:
         description: "The source image tag to release"
         default: main
-        required: true
         type: string
       target_tag:
         description: "The target image tag to release"
         default: latest
-        required: true
         type: string
       rollback_tag:
         description: "The rollback image tag"
         default: rollback
-        required: false
         type: string
     secrets:
       registry_password:
         description: "Docker registry password, defaults to GITHUB_TOKEN"
-        required: false
 
 jobs:
   release:

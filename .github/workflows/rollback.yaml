@@ -30,7 +30,7 @@ on:
       rollback_tag:
         description: "The rollback image tag"
         default: rollback
-        required: false
+        required: true
         type: string
       release_workflow:
         description: "Release workflow in the same repo to disable"

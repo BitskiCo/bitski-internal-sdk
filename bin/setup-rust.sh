@@ -20,8 +20,6 @@ export RUSTUP_HOME=${RUSTUP_HOME:-/usr/local/rustup}
 mkdir -p "$SDK_CACHE_DIR/rust"
 cd "$SDK_CACHE_DIR"
 
-sccache --show-stats || true
-
 # Figure out correct version of a three part version number is not passed
 find_version_from_git_tags() {
     local variable_name=$1
@@ -54,18 +52,6 @@ find_version_from_git_tags() {
         exit 1
     fi
     echo "${variable_name}=${!variable_name}"
-}
-
-updaterc() {
-    if [ "${UPDATE_RC}" = "true" ]; then
-        echo "Updating /etc/bash.bashrc and /etc/zsh/zshrc..."
-        if [[ "$(cat /etc/bash.bashrc)" != *"$1"* ]]; then
-            echo -e "$1" >> /etc/bash.bashrc
-        fi
-        if [ -f "/etc/zsh/zshrc" ] && [[ "$(cat /etc/zsh/zshrc)" != *"$1"* ]]; then
-            echo -e "$1" >> /etc/zsh/zshrc
-        fi
-    fi
 }
 
 architecture="$(arch)"
@@ -120,21 +106,11 @@ export PATH=${CARGO_HOME}/bin:${PATH}
 echo "Installing common Rust dependencies..."
 rustup component add clippy rls rust-analysis rust-src rustfmt
 for rust_version in "${RUSTUP_INSTALL_TOOLCHAINS[@]}"; do
-    rustup toolchain install "$rust_version" --component clippy rls rust-analysis rust-src rustfmt
+    rustup toolchain install "$rust_version" --profile $RUSTUP_PROFILE --component clippy rls rust-analysis rust-src rustfmt
 done
-
-# Add CARGO_HOME, RUSTUP_HOME and bin directory into bashrc/zshrc files (unless disabled)
-updaterc "$(cat << EOF
-export RUSTUP_HOME="${RUSTUP_HOME}"
-export CARGO_HOME="${CARGO_HOME}"
-if [[ "\${PATH}" != *"\${CARGO_HOME}/bin"* ]]; then export PATH="\${CARGO_HOME}/bin:\${PATH}"; fi
-EOF
-)"
 
 # Make files writable for rustlang group
 chmod -R g+r+w "${RUSTUP_HOME}" "${CARGO_HOME}"
-
-sccache --stop-server || true
 
 cd /
 rm -rf "$SDK_CACHE_DIR" || true

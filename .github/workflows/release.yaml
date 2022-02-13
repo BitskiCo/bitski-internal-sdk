@@ -55,7 +55,7 @@ jobs:
       # Image tags
       SOURCE_TAG: ${{ inputs.source_tag || 'devcontainer' }}
       TARGET_TAG: ${{ inputs.target_tag || 'latest' }}
-      ROLLBACK_TAG: ${{ inputs.rollback_tag || 'rollback' }}
+      ROLLBACK_TAG: ${{ inputs.rollback_tag || '' }}
     steps:
       # Login against a Docker registry
       # https://github.com/docker/login-action
@@ -70,9 +70,13 @@ jobs:
         run: |
           IMAGE_NAME="${REGISTRY}/${IMAGE_NAME,,}"
           echo "IMAGE_NAME=$IMAGE_NAME" | tee -a $GITHUB_ENV
+
           echo "SOURCE_IMAGE=$REGISTRY/$IMAGE_NAME:$SOURCE_TAG" | tee -a $GITHUB_ENV
           echo "TARGET_IMAGE=$REGISTRY/$IMAGE_NAME:$TARGET_TAG" | tee -a $GITHUB_ENV
-          echo "ROLLBACK_IMAGE=$REGISTRY/$IMAGE_NAME:$ROLLBACK_TAG" | tee -a $GITHUB_ENV
+
+          if [[ -n "$ROLLBACK_TAG" ]]; then
+            echo "ROLLBACK_IMAGE=$REGISTRY/$IMAGE_NAME:$ROLLBACK_TAG" | tee -a $GITHUB_ENV
+          fi
 
       - name: Tag target and rollback images
         run: |
@@ -91,7 +95,9 @@ jobs:
               echo 'Nothing to do: target is the same as source'
               exit
             fi
-            docker tag "$TARGET_IMAGE" "$ROLLBACK_IMAGE"
+            if [[ -n "$ROLLBACK_IMAGE" ]]; then
+              docker tag "$TARGET_IMAGE" "$ROLLBACK_IMAGE"
+            fi
           else
             echo "ROLLBACK_IMAGE=" | tee -a $GITHUB_ENV
           fi
@@ -103,8 +109,8 @@ jobs:
         run: |
           set -o xtrace
 
-          docker push "$TARGET_IMAGE"
-
           if [[ -n "$ROLLBACK_IMAGE" ]]; then
             docker push "$ROLLBACK_IMAGE"
           fi
+
+          docker push "$TARGET_IMAGE"

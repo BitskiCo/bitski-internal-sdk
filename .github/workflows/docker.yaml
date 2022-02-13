@@ -109,6 +109,7 @@ jobs:
             RUST_VERSION=${{ matrix.rust }}
           cache-from: type=gha,scope=${{ env.SCOPE }}
           cache-to: type=gha,scope=${{ env.SCOPE }},mode=max
+          pull: ${{ matrix.manifest_platforms != null }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

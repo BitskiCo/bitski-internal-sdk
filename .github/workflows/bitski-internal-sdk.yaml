@@ -1,0 +1,58 @@
+name: Bitski Internal SDK
+on:
+  pull_request:
+    paths:
+      - .github/workflows/bitski-internal-sdk.yaml
+      - .github/workflows/docker.yaml
+      - docker-compose.yaml
+      - Dockerfile
+  push:
+    branches: [main]
+  schedule:
+    - cron: "16 0 * * 0"
+
+jobs:
+  devcontainer:
+    name: Devcontainer
+    uses: ./.github/workflows/docker.yaml
+    with:
+      tags: devcontainer
+      target: devcontainer
+      build_args: |
+        USERNAME=bitski
+        RUST_VERSION=latest,1.58,1.57,1.56
+      archs: |
+        amd64
+        arm64
+      push: ${{ github.event_name != 'pull_request' }}
+      startup_test: true
+      startup_image_env_name: DEVCONTAINER_IMAGE
+
+  rust_1_58:
+    name: Rust 1.58
+    uses: ./.github/workflows/docker.yaml
+    with:
+      tags: |
+        rust
+        rust-1.58
+      target: rust
+      push: ${{ github.event_name != 'pull_request' }}
+      build_args: RUST_VERSION=1.58
+
+  rust_1_57:
+    name: Rust 1.57
+    uses: ./.github/workflows/docker.yaml
+    with:
+      tags: rust-1.57
+      target: rust
+      push: ${{ github.event_name != 'pull_request' }}
+      build_args: RUST_VERSION=1.57
+
+  rust_1_56:
+    name: Rust 1.56
+    uses: ./.github/workflows/docker.yaml
+    with:
+      tags: rust-1.56
+      target: rust
+      push: ${{ github.event_name != 'pull_request' }}
+      build_args: RUST_VERSION=1.56

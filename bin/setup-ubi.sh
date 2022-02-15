@@ -26,7 +26,6 @@ fi
 dnf install -y \
     bash-completion \
     ca-certificates \
-    compat-openssl10 \
     curl \
     dirmngr \
     gcc \

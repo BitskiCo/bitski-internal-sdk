@@ -2,7 +2,7 @@
 
 set -e
 
-: ${IMAGE:=bitski-internal-sdk:devcontainer}
+: ${IMAGE:=ghcr.io/bitskico/bitski-internal-sdk:devcontainer}
 
 # Build devcontainer for local use
 

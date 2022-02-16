@@ -1,5 +1,5 @@
 version: "3"
 services:
   devcontainer:
-    image: "${DEVCONTAINER_IMAGE:-devcontainer}"
+    image: "${DEVCONTAINER_IMAGE:-ghcr.io/bitskico/bitski-internal-sdk:devcontainer}"
     command: /bin/sh -c "while sleep 1000; do :; done"

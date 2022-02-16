@@ -12,16 +12,12 @@ FROM $RUNTIME_BASE AS runtime
 
 ARG SCCACHE_VERSION
 
-ARG USERNAME
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
 # Configure cache
 ARG SDK_WORKDIR=/tmp/bitski-internal-sdk
 
 # Install system dependencies
 RUN --mount=target=/usr/local/bin/setup-ubi.sh,source=bin/setup-ubi.sh \
-    --mount=type=cache,target=/var/cache/yum \
+    --mount=type=cache,target=/var/cache/dnf \
     setup-ubi.sh
 
 # Install sccache
@@ -70,7 +66,6 @@ RUN --mount=target=/usr/local/bin/setup-rust.sh,source=bin/setup-rust.sh \
     --mount=type=cache,target=$CARGO_HOME/git \
     --mount=type=cache,target=$CARGO_HOME/registry \
     --mount=type=cache,target=$SCCACHE_DIR \
-    --mount=type=cache,target=/var/cache/yum \
     setup-rust.sh
 
 # Install cargo-cache
@@ -97,6 +92,8 @@ FROM $DEVCONTAINER_BASE AS devcontainer
 
 ARG DEFAULT_SHELL=/usr/local/bin/zsh
 ARG USERNAME
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
 
 ARG DOCKER_COMPOSE_VERSION
 ARG OC_VERSION
@@ -137,7 +134,7 @@ RUN git config --system commit.gpgsign true
 RUN --mount=target=/usr/local/bin/setup-docker.sh,source=bin/setup-docker.sh \
     --mount=type=cache,target=$SDK_WORKDIR \
     --mount=type=cache,target=$SCCACHE_DIR \
-    --mount=type=cache,target=/var/cache/yum \
+    --mount=type=cache,target=/var/cache/dnf \
     setup-docker.sh
 
 # Install OpenShift CLI
@@ -156,5 +153,9 @@ RUN --mount=target=/usr/local/bin/setup-zsh.sh,source=bin/setup-zsh.sh \
 RUN --mount=target=/usr/local/bin/setup-codespaces.sh,source=bin/setup-codespaces.sh \
     setup-codespaces.sh
 
+# Configure non-root user
+RUN --mount=target=/usr/local/bin/setup-user.sh,source=bin/setup-user.sh \
+    setup-user.sh
+
 USER $USERNAME
-WORKDIR /workspace
+WORKDIR /workspaces

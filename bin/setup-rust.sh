@@ -11,7 +11,6 @@ set -e
 
 export CARGO_HOME=${CARGO_HOME:-/usr/local/cargo}
 export RUSTUP_HOME=${RUSTUP_HOME:-/usr/local/rustup}
-: ${USERNAME:=root}
 : ${UPDATE_RC:=true}
 : ${RUST_VERSION:=latest}
 : ${RUSTUP_PROFILE:=minimal}
@@ -68,15 +67,11 @@ case ${download_architecture} in
     ;;
 esac
 
-# Install Rust dependencies
-dnf repoquery --deplist rust | grep provider | cut -d':' -f2 | xargs dnf install -y
-
 # Install Rust
 umask 0002
 if ! cat /etc/group | grep -e "^rustlang:" > /dev/null 2>&1; then
     groupadd -r rustlang
 fi
-usermod -a -G rustlang "${USERNAME}"
 mkdir -p "${CARGO_HOME}" "${RUSTUP_HOME}"
 chown :rustlang "${RUSTUP_HOME}" "${CARGO_HOME}"
 chmod g+r+w+s "${RUSTUP_HOME}" "${CARGO_HOME}"

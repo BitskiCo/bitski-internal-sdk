@@ -2,7 +2,6 @@
 
 set -e
 
-: ${USERNAME:=root}
 : ${ZSH_VERSION:=5.8.1}
 : ${SDK_CACHE_DIR:=/var/cache/bitski-internal-sdk}
 
@@ -38,19 +37,19 @@ make install
 # Install oh-my-zsh
 # https://github.com/ohmyzsh/ohmyzsh
 
-su $USERNAME -c 'git clone --depth=1 \
+git clone --depth=1 \
     -c core.eol=lf \
     -c core.autocrlf=false \
     -c fsck.zeroPaddedFilemode=ignore \
     -c fetch.fsck.zeroPaddedFilemode=ignore \
     -c receive.fsck.zeroPaddedFilemode=ignore \
-    https://github.com/ohmyzsh/ohmyzsh.git ~/.oh-my-zsh'
+    https://github.com/ohmyzsh/ohmyzsh.git /etc/skel/.oh-my-zsh
 
-su $USERNAME -c 'cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc'
-su $USERNAME -c 'cd ~/.oh-my-zsh && git repack -adf --depth=1 --window=1'
+cp /etc/skel/.oh-my-zsh/templates/zshrc.zsh-template /etc/skel/.zshrc
+cd /etc/skel/.oh-my-zsh && git repack -adf --depth=1 --window=1
 
-su $USERNAME -c \
-    'sed -i "/plugins=\(.*\)/a plugins+=(docker docker-compose rust)" ~/.zshrc'
+sed -i "/plugins=\(.*\)/a plugins+=(docker docker-compose rust)" \
+    /etc/skel/.zshrc
 
 sccache --stop-server || true
 

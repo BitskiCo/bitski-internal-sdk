@@ -2,7 +2,6 @@
 
 set -e
 
-: ${USERNAME:=root}
 : ${OC_VERSION:=4.9}
 : ${SDK_CACHE_DIR:=/var/cache/bitski-internal-sdk}
 

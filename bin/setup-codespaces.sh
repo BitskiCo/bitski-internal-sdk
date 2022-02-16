@@ -10,10 +10,6 @@
 
 set -e
 
-: ${USERNAME:=root}
-: ${USER_UID:=1000}
-: ${USER_GID:=1000}
-
 # .bashrc/.zshrc snippet
 rc_snippet="$(cat << 'EOF'
 
@@ -118,13 +114,13 @@ chmod +x /usr/local/bin/code
 
 # Add RC snippet and custom bash prompt
 echo "${rc_snippet}" >> /etc/bashrc
-su $USERNAME -c "echo $(printf '%q' "$codespaces_bash") >> ~/.bashrc"
+echo "$codespaces_bash" >> /etc/skel/.bashrc
 
 # Configure zsh and Oh My Zsh!
 echo "${rc_snippet}" >> /etc/zshrc
 # Adapted, simplified inline Oh My Zsh! install steps that adds, defaults to a codespaces theme.
 # See https://github.com/ohmyzsh/ohmyzsh/blob/master/tools/install.sh for official script.
-su $USERNAME -c 'echo -e "\nDISABLE_AUTO_UPDATE=true\nDISABLE_UPDATE_PROMPT=true" >> ~/.zshrc'
-su $USERNAME -c 'sed -i "s/ZSH_THEME=.*/ZSH_THEME=codespaces/g" ~/.zshrc'
-su $USERNAME -c 'mkdir -p ~/.oh-my-zsh/custom/themes'
-su $USERNAME -c "echo $(printf '%q' "$codespaces_zsh") > ~/.oh-my-zsh/custom/themes/codespaces.zsh-theme"
+echo -e "\nDISABLE_AUTO_UPDATE=true\nDISABLE_UPDATE_PROMPT=true" >> /etc/skel/.zshrc
+sed -i "s/ZSH_THEME=.*/ZSH_THEME=codespaces/g" /etc/skel/.zshrc
+mkdir -p /etc/skel/.oh-my-zsh/custom/themes
+echo "$codespaces_zsh" > /etc/skel/.oh-my-zsh/custom/themes/codespaces.zsh-theme

@@ -25,6 +25,7 @@ jobs:
         amd64
         arm64
       push: ${{ github.event_name != 'pull_request' }}
+      cache_tag: devcontainer
       startup_test: true
       startup_image_env_name: DEVCONTAINER_IMAGE
 
@@ -37,6 +38,7 @@ jobs:
         rust-1.58
       target: rust
       push: ${{ github.event_name != 'pull_request' }}
+      cache_tag: rust-1.58
       build_args: RUST_VERSION=1.58
 
   rust_1_57:
@@ -46,6 +48,7 @@ jobs:
       tags: rust-1.57
       target: rust
       push: ${{ github.event_name != 'pull_request' }}
+      cache_tag: rust-1.57
       build_args: RUST_VERSION=1.57
 
   rust_1_56:
@@ -55,4 +58,5 @@ jobs:
       tags: rust-1.56
       target: rust
       push: ${{ github.event_name != 'pull_request' }}
+      cache_tag: rust-1.56
       build_args: RUST_VERSION=1.56

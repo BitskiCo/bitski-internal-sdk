@@ -48,6 +48,10 @@ on:
         description: "If true, push the build to the registry"
         type: boolean
         default: true
+      cache_tag:
+        description: "A tag to scope the Docker cache"
+        type: string
+        default: "docker"
       startup_test:
         description: "Run startup test with docker-compose"
         type: boolean
@@ -119,7 +123,7 @@ jobs:
       - name: Configure Docker build args
         id: docker_args
         env:
-          SCOPE: ${{ runner.os }}-${{ runner.arch }}-docker-${{ hashFiles(inputs.file) }}
+          SCOPE: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache_tag }}-${{ hashFiles(inputs.file) }}
         run: |
           echo "::set-output name=cache_from::type=gha,scope=$SCOPE"
           echo "::set-output name=cache_to::type=gha,scope=${SCOPE},mode=max"

@@ -28,6 +28,8 @@ jobs:
       cache_tag: devcontainer
       startup_test: true
       startup_image_env_name: DEVCONTAINER_IMAGE
+      matrix: |
+        {"name": "Devcontainer"}
 
   rust_1_58:
     name: Rust 1.58
@@ -40,6 +42,8 @@ jobs:
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.58
       build_args: RUST_VERSION=1.58
+      matrix: |
+        {"name": "Rust 1.58"}
 
   rust_1_57:
     name: Rust 1.57
@@ -50,6 +54,8 @@ jobs:
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.57
       build_args: RUST_VERSION=1.57
+      matrix: |
+        {"name": "Rust 1.57"}
 
   rust_1_56:
     name: Rust 1.56
@@ -60,3 +66,5 @@ jobs:
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.56
       build_args: RUST_VERSION=1.56
+      matrix: |
+        {"name": "Rust 1.56"}

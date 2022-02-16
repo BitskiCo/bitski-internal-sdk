@@ -65,6 +65,9 @@ on:
       submodules:
         description: "Checkout submodules"
         type: string
+      matrix:
+        description: "JSON-encoded GitHub Actions matrix instance"
+        type: string
     secrets:
       registry_password:
         description: "Docker registry password, defaults to GITHUB_TOKEN"
@@ -220,24 +223,48 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           input: ${{ steps.image.outputs.archive }}
-          # format: sarif
-          # output: trivy-results.sarif
+          format: table
+          output: trivy-results.txt
+
+      - name: Inspect Trivy results
+        env:
+          FILE: trivy-results.txt
+          MATRIX: ${{ inputs.matrix }}
+        run: |
+          echo '::group::Trivy results'
+          cat "$FILE"
+          echo '::endgroup::'
+
+          if [[ -s "$FILE" ]]; then
+            PREFIX=`echo "$MATRIX" | jq -r '[. | to_entries | .[].value] | join(" / ")'`
+            if [[ -n "$PREFIX" ]]; then PREFIX="${PREFIX/%/ / }"; fi
+            echo "::warning file=${{ inputs.file }},title=${PREFIX}Trivy::Vulnerabilities found"
+          fi
 
       # TODO(jacob): Integrate Trivy with GitHub Security
       # - name: Upload Trivy scan results to the GitHub Security tab
       #   uses: github/codeql-action/upload-sarif@v1
       #   with:
       #     sarif_file: trivy-results.sarif
+      #     matrix: ${{ inputs.matrix || 'null' }}
 
       # TODO(jacob): Configure Dockle lint
       - name: Lint with Dockle
         env:
           INPUT: ${{ steps.image.outputs.archive }}
-        run: >
-          docker run --rm
-          --volume "$PWD/$INPUT:/tmp/$INPUT"
-          goodwithtech/dockle:latest
-          --input "/tmp/$INPUT"
+          MATRIX: ${{ inputs.matrix }}
+        run: |
+          echo '::group::Dockle'
+          if ! docker run --rm --volume "$PWD/$INPUT:/tmp/$INPUT" \
+            goodwithtech/dockle:latest --exit-code 1 --input "/tmp/$INPUT"
+          then
+            echo '::endgroup::'
+            PREFIX=`echo "$MATRIX" | jq -r '[. | to_entries | .[].value] | join(" / ")'`
+            if [[ -n "$PREFIX" ]]; then PREFIX="${PREFIX/%/ / }"; fi
+            echo "::warning file=${{ inputs.file }},title=${PREFIX}Dockle::Lint errors"
+          else
+            echo '::endgroup::'
+          fi
 
       - name: Log into Docker registry
         if: inputs.push

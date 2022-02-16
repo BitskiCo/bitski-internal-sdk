@@ -64,6 +64,10 @@ on:
     secrets:
       registry_password:
         description: "Docker registry password, defaults to GITHUB_TOKEN"
+      build_args:
+        description: "Docker build args with secrets"
+      ssh_private_keys:
+        description: "SSH private keys, e.g. GitHub Deploy Keys"
 
 jobs:
   build_and_push:
@@ -83,8 +87,6 @@ jobs:
       - name: Configure image tags for multiarch manifest
         if: inputs.archs
         run: |
-          set -o xtrace
-
           ARCH=`uname -m`
           case $ARCH in
           amd64 | x86_64) 
@@ -99,24 +101,23 @@ jobs:
 
           echo "TAGS=$(printf '%q' "$TAGS")" | tee -a $GITHUB_ENV
 
+      # Workaround for lack of support for `secrets` in `if` clause
+      - name: Detect SSH
+        id: ssh
+        run: |
+          if ${{ secrets.ssh_private_keys != null }}; then
+            echo "Found SSH private keys"
+            echo "::set-output name=use::true"
+          fi
+
       - name: Configure SSH Agent
-        if: inputs.ssh_private_keys
+        if: steps.ssh.outputs.use
         uses: webfactory/ssh-agent@v0.5.4
         with:
-          ssh-private-key: ${{ inputs.ssh_private_keys }}
-
-      - name: Save Git and SSH config
-        if: inputs.ssh_private_keys
-        run: |
-          GIT_CONFIG=`cat ~/.gitconfig`
-          printf 'GIT_CONFIG=%q' "$GIT_CONFIG" | tee -a $GITHUB_ENV
-
-          SSH_CONFIG=`cat ~/.ssh/config |
-            sed 's/IdentitiesOnly yes/ForwardAgent yes/g'`
-          printf 'SSH_CONFIG=%q' "$SSH_CONFIG" | tee -a $GITHUB_ENV
+          ssh-private-key: ${{ secrets.ssh_private_keys }}
 
       - name: Configure Docker build args
-        id: build_args
+        id: docker_args
         env:
           SCOPE: ${{ runner.os }}-${{ runner.arch }}-docker-${{ hashFiles(inputs.file) }}
         run: |
@@ -126,6 +127,19 @@ jobs:
           if [[ -n "$SSH_AUTH_SOCK" ]]; then
             echo "::set-output name=ssh::default=$SSH_AUTH_SOCK"
           fi
+
+      - name: Save Git and SSH config
+        run: |
+          if ${{ steps.ssh.outputs.use != null }}; then
+            if [[ ! -f .gitconfig ]]; then
+              cp ~/.gitconfig .gitconfig
+            fi
+            if [[ ! -f .sshconfig ]]; then
+              cp ~/.ssh/config .sshconfig
+            fi
+          fi
+          touch .gitconfig
+          touch .sshconfig
 
       # Workaround: https://github.com/docker/build-push-action/issues/461
       - name: Setup Docker buildx
@@ -147,16 +161,18 @@ jobs:
         with:
           file: ${{ inputs.file }}
           context: ${{ inputs.context }}
-          build-args: ${{ inputs.build_args }}
-          ssh: ${{ steps.build_args.outputs.ssh }}
-          cache-from: ${{ steps.build_args.outputs.cache_from }}
-          cache-to: ${{ steps.build_args.outputs.cache_to }}
+          build-args: |
+            ${{ secrets.build_args }}
+            ${{ inputs.build_args }}
+          ssh: ${{ steps.docker_args.outputs.ssh }}
+          cache-from: ${{ steps.docker_args.outputs.cache_from }}
+          cache-to: ${{ steps.docker_args.outputs.cache_to }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           target: ${{ inputs.target }}
 
-      - name: Configure local image name
+      - name: Save local image name
         id: local
         env:
           TAGS: ${{ fromJSON(steps.docker.outputs.metadata)['image.name'] }}
@@ -224,28 +240,31 @@ jobs:
         with:
           file: ${{ inputs.file }}
           context: ${{ inputs.context }}
-          build-args: ${{ inputs.build_args }}
-          ssh: ${{ steps.build_args.outputs.ssh }}
-          cache-from: ${{ steps.build_args.outputs.cache_from }}
-          cache-to: ${{ steps.build_args.outputs.cache_to }}
+          build-args: |
+            ${{ secrets.build_args }}
+            ${{ inputs.build_args }}
+          ssh: ${{ steps.docker_args.outputs.ssh }}
+          cache-from: ${{ steps.docker_args.outputs.cache_from }}
+          cache-to: ${{ steps.docker_args.outputs.cache_to }}
           push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           target: ${{ inputs.target }}
 
       - name: Create multiarch manifest
+        id: manifest
         if: inputs.archs
         env:
           ARCHS: ${{ inputs.archs }}
           BASE_TAGS: ${{ inputs.tags }}
           BASE_MANIFEST: ${{ inputs.registry }}/${{ inputs.image_name || github.repository }}
-          BUILT_TAGS: ${{ steps.local.outputs.image_name }}
+          BUILT_TAGS: ${{ fromJSON(steps.docker.outputs.metadata)['image.name'] }}
         run: |
           IFS=$'\n ' command eval 'ARCHS=($ARCHS)'
           IFS=$'\n ' command eval 'BASE_TAGS=($BASE_TAGS)'
           BASE_MANIFEST="${BASE_MANIFEST,,}"
 
-          IFS=$'\n ' command eval 'BUILT_TAGS=($BUILT_TAGS)'
+          IFS=', ' command eval 'BUILT_TAGS=($BUILT_TAGS)'
           BUILT_TAGS="^($(IFS=\|; echo "${BUILT_TAGS[*]}"))$"
 
           MANIFESTS=()
@@ -257,9 +276,9 @@ jobs:
               IMAGE_NAME="${MANIFEST}-${PLATFORM}"
               echo "::group::docker pull $IMAGE_NAME"
               if [[ "$IMAGE_NAME" =~ $BUILT_TAGS ]]; then
-                docker pull "$IMAGE_NAME"
-              else
                 echo "Not pulling built image $IMAGE_NAME"
+              else
+                docker pull "$IMAGE_NAME"
               fi
               echo '::endgroup::'
               AMEND+=(--amend "$IMAGE_NAME")
@@ -272,8 +291,11 @@ jobs:
           done
 
           MANIFESTS=`IFS=$'\n'; echo "${MANIFESTS[*]}"`
-          echo "MANIFESTS=$(printf '%q' "$MANIFESTS")" | tee -a $GITHUB_ENV
+          MANIFESTS=`printf '%q' "$MANIFESTS"`
+          echo "::set-output name=manifests::$MANIFESTS"
 
       - name: Push multiarch manifest
-        if: inputs.push && env.MANIFESTS != null
+        if: inputs.push && steps.manifest.outputs.manifests
+        env:
+          MANIFESTS: ${{ steps.manifest.outputs.manifests }}
         run: echo "$MANIFESTS" | xargs -n1 docker manifest push

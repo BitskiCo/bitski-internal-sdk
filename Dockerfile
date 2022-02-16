@@ -17,7 +17,7 @@ ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
 # Configure cache
-ARG SDK_CACHE_DIR=/var/cache/bitski-internal-sdk
+ARG SDK_WORKDIR=/tmp/bitski-internal-sdk
 
 # Install system dependencies
 RUN --mount=target=/usr/local/bin/setup-ubi.sh,source=bin/setup-ubi.sh \
@@ -26,7 +26,7 @@ RUN --mount=target=/usr/local/bin/setup-ubi.sh,source=bin/setup-ubi.sh \
 
 # Install sccache
 RUN --mount=target=/usr/local/bin/setup-sccache.sh,source=bin/setup-sccache.sh \
-    --mount=type=cache,target=$SDK_CACHE_DIR \
+    --mount=type=cache,target=$SDK_WORKDIR \
     setup-sccache.sh
 
 #############################################################################
@@ -37,12 +37,11 @@ FROM $RUST_BASE AS rust
 ARG RUST_VERSION
 
 # Configure cache
-ARG SDK_CACHE_DIR=/var/cache/bitski-internal-sdk
-ARG CARGO_CACHE_DIR=$SDK_CACHE_DIR/cargo
-ENV RUSTC_WRAPPER=sccache
+ARG SDK_WORKDIR=/tmp/bitski-internal-sdk
 
 # Configure sccache
-ARG SCCACHE_DIR=$SDK_CACHE_DIR/sccache
+ARG RUSTC_WRAPPER=sccache
+ARG SCCACHE_DIR=/var/cache/sccache
 ARG SCCACHE_CACHE_SIZE=2G
 # sccache in AWS S3
 ARG AWS_ACCESS_KEY_ID
@@ -67,21 +66,29 @@ ENV CARGO_HOME=/usr/local/cargo
 ENV RUSTUP_HOME=/usr/local/rustup
 ENV PATH=${CARGO_HOME}/bin:$PATH
 RUN --mount=target=/usr/local/bin/setup-rust.sh,source=bin/setup-rust.sh \
-    --mount=type=cache,target=$SDK_CACHE_DIR \
+    --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$CARGO_HOME/git \
+    --mount=type=cache,target=$CARGO_HOME/registry \
+    --mount=type=cache,target=$SCCACHE_DIR \
     --mount=type=cache,target=/var/cache/yum \
     setup-rust.sh
 
 # Install cargo-cache
-RUN --mount=type=cache,target=$SDK_CACHE_DIR \
-    CARGO_HOME=$CARGO_CACHE_DIR \
+RUN --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$CARGO_HOME/git \
+    --mount=type=cache,target=$CARGO_HOME/registry \
+    --mount=type=cache,target=$SCCACHE_DIR \
     cargo install --root /usr/local \
-    --target-dir $CARGO_CACHE_DIR/target cargo-cache
+    --target-dir $SDK_WORKDIR/target cargo-cache
 
 # Install Diesel client
-RUN --mount=type=cache,target=$SDK_CACHE_DIR \
-    CARGO_HOME=$CARGO_CACHE_DIR \
-    cargo install --no-default-features --features postgres \
-    --root /usr/local --target-dir $CARGO_CACHE_DIR/target diesel_cli
+RUN --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$CARGO_HOME/git \
+    --mount=type=cache,target=$CARGO_HOME/registry \
+    --mount=type=cache,target=$SCCACHE_DIR \
+    cargo install --root /usr/local \
+    --no-default-features --features postgres \
+    --target-dir $SDK_WORKDIR/target diesel_cli
 
 #############################################################################
 # Devcontainer container                                                    #
@@ -96,10 +103,10 @@ ARG OC_VERSION
 ARG ZSH_VERSION
 
 # Configure cache
-ARG SDK_CACHE_DIR=/var/cache/bitski-internal-sdk
+ARG SDK_WORKDIR=/tmp/bitski-internal-sdk
 
 # Configure sccache
-ARG SCCACHE_DIR=$SDK_CACHE_DIR/sccache
+ARG SCCACHE_DIR=/var/cache/sccache
 ARG SCCACHE_CACHE_SIZE=2G
 # sccache in AWS S3
 ARG AWS_ACCESS_KEY_ID
@@ -128,18 +135,21 @@ RUN git config --system commit.gpgsign true
 
 # Install Docker
 RUN --mount=target=/usr/local/bin/setup-docker.sh,source=bin/setup-docker.sh \
-    --mount=type=cache,target=$SDK_CACHE_DIR \
+    --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$SCCACHE_DIR \
     --mount=type=cache,target=/var/cache/yum \
     setup-docker.sh
 
 # Install OpenShift CLI
 RUN --mount=target=/usr/local/bin/setup-oc.sh,source=bin/setup-oc.sh \
-    --mount=type=cache,target=$SDK_CACHE_DIR \
+    --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$SCCACHE_DIR \
     env CC=sccache-cc setup-oc.sh
 
 # Install zsh
 RUN --mount=target=/usr/local/bin/setup-zsh.sh,source=bin/setup-zsh.sh \
-    --mount=type=cache,target=$SDK_CACHE_DIR \
+    --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$SCCACHE_DIR \
     env CC=sccache-cc setup-zsh.sh
 
 # Setup GitHub Codespaces themes

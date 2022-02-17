@@ -12,15 +12,45 @@ on:
     - cron: "16 0 * * 0"
 
 jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      cargo_image_tag: ${{ steps.cargo.outputs.image_tag }}
+      cargo_image_name: ${{ steps.cargo.outputs.image_name }}
+    steps:
+      - name: Configure Cargo image name
+        id: cargo
+        env:
+          IMAGE_TAG: cargo-${{ runner.arch }}-${{ github.sha }}
+          REGISTRY: ghcr.io/${{ github.repository }}
+        run: |
+          echo "::set-output name=image_tag::${IMAGE_TAG,,}"
+          echo "::set-output name=image_name::${REGISTRY,,}:${IMAGE_TAG,,}"
+
+  cargo:
+    name: Cargo
+    needs: setup
+    uses: ./.github/workflows/docker.yaml
+    with:
+      tags: ${{ needs.setup.outputs.cargo_image_tag }}
+      target: cargo
+      push: true
+      cache_tag: cargo
+      matrix: |
+        {"tags": "cargo"}
+
   devcontainer:
     name: Devcontainer
+    needs: [setup, cargo]
     uses: ./.github/workflows/docker.yaml
     with:
       tags: devcontainer
       target: devcontainer
       build_args: |
+        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
         USERNAME=bitski
-        RUST_VERSION=latest,1.58,1.57,1.56
+        RUST_VERSION=latest,1.58,1.57,1.56,1.55
       archs: |
         amd64
         arm64
@@ -33,38 +63,120 @@ jobs:
 
   rust_1_58:
     name: Rust 1.58
+    needs: [setup, cargo]
     uses: ./.github/workflows/docker.yaml
     with:
       tags: |
         rust
         rust-1.58
       target: rust
+      build_args: |
+        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
+        RUST_VERSION=1.58
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.58
-      build_args: RUST_VERSION=1.58
       matrix: |
         {"tags": "rust-1.58"}
 
   rust_1_57:
     name: Rust 1.57
+    needs: [setup, cargo]
     uses: ./.github/workflows/docker.yaml
     with:
       tags: rust-1.57
       target: rust
+      build_args: |
+        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
+        RUST_VERSION=1.57
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.57
-      build_args: RUST_VERSION=1.57
       matrix: |
         {"tags": "rust-1.57"}
 
   rust_1_56:
     name: Rust 1.56
+    needs: [setup, cargo]
     uses: ./.github/workflows/docker.yaml
     with:
       tags: rust-1.56
       target: rust
+      build_args: |
+        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
+        RUST_VERSION=1.56
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.56
-      build_args: RUST_VERSION=1.56
       matrix: |
         {"tags": "rust-1.56"}
+
+  rust_1_55:
+    name: Rust 1.55
+    needs: [setup, cargo]
+    uses: ./.github/workflows/docker.yaml
+    with:
+      tags: rust-1.55
+      target: rust
+      build_args: |
+        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
+        RUST_VERSION=1.55
+      push: ${{ github.event_name != 'pull_request' }}
+      cache_tag: rust-1.55
+      matrix: |
+        {"tags": "rust-1.55"}
+
+  cleanup:
+    name: Cleanup
+    needs:
+      - devcontainer
+      - rust_1_58
+      - rust_1_57
+      - rust_1_56
+      - rust_1_55
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove Cargo image
+        uses: actions/github-script@v6
+        env:
+          RUNNER_ARCH: ${{ runner.arch }}
+        with:
+          script: |
+            const request = {
+              package_type: "container",
+              package_name: context.repo.repo,
+              org: context.repo.owner,
+            };
+
+            const tag = `cargo-${process.env.RUNNER_ARCH.toLowerCase()}-${
+              context.sha
+            }`;
+
+            let versionIds = [];
+            for await (const response of github.paginate.iterator(
+              github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg,
+              request
+            )) {
+              const ids = response.data
+                ?.filter(
+                  (pkg) => pkg?.metadata?.container?.tags?.indexOf(tag) >= 0
+                )
+                .map((pkg) => pkg.id);
+              if (ids.length > 0) {
+                versionIds = ids;
+                break;
+              }
+            }
+
+            const packageName = `${context.repo.owner}/${context.repo.repo}:${tag}`;
+            if (versionIds.length === 0) {
+              core.warning(`Package ${packageName} not found`);
+              return;
+            }
+
+            for (const id of versionIds) {
+              request.package_version_id = id;
+              try {
+                await github.rest.packages.deletePackageVersionForOrg(request);
+              } catch (err) {
+                core.warning(`Error deleting package ${packageName}: ${err}`);
+              }
+            }

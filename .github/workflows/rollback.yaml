@@ -41,23 +41,15 @@ jobs:
     env:
       # Use docker.io for Docker Hub if empty
       REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
-      REGISTRY_USERNAME: ${{ inputs.registry_username || github.actor }}
-      # github.repository as <account>/<repo>
-      IMAGE_NAME: ${{ inputs.image_name || github.repository }}
-      # Image tags
-      TARGET_TAG: ${{ inputs.target_tag || 'latest' }}
-      ROLLBACK_TAG: ${{ inputs.rollback_tag || 'devcontainer' }}
-      # Release workflow
-      RELEASE_WORKFLOW: ${{ inputs.release_workflow || '' }}
-      RELEASE_WORKFLOW_OWNER: ${{ inputs.release_workflow_owner || ':owner' }}
-      RELEASE_WORKFLOW_REPO: ${{ inputs.release_workflow_repo || ':repo' }}
     permissions:
       actions: write
       packages: write
     steps:
       - name: Disable release workflow
-        if: github.event_name != 'pull_request' && env.RELEASE_WORKFLOW
+        if: github.event_name != 'pull_request' && inputs.release_workflow
         uses: actions/github-script@v5
+        env:
+          RELEASE_WORKFLOW: ${{ inputs.release_workflow }}
         with:
           script: |
             github.rest.actions.disableWorkflow({
@@ -72,15 +64,20 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ env.REGISTRY_USERNAME }}
+          username: ${{ inputs.registry_username || github.actor }}
           password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
 
       - name: Configure image names
+        env:
+          # github.repository as <account>/<repo>
+          IMAGE_NAME: ${{ inputs.image_name || github.repository }}
+          # Image tags
+          TARGET_TAG: ${{ inputs.target_tag || 'latest' }}
+          ROLLBACK_TAG: ${{ inputs.rollback_tag || 'devcontainer' }}
         run: |
-          IMAGE_NAME="${REGISTRY}/${IMAGE_NAME,,}"
-          echo "IMAGE_NAME=$IMAGE_NAME" | tee -a $GITHUB_ENV
-          echo "TARGET_IMAGE=$REGISTRY/$IMAGE_NAME:$TARGET_TAG" | tee -a $GITHUB_ENV
-          echo "ROLLBACK_IMAGE=$REGISTRY/$IMAGE_NAME:$ROLLBACK_TAG" | tee -a $GITHUB_ENV
+          IMAGE_NAME="${REGISTRY,,}/${IMAGE_NAME,,}"
+          echo "TARGET_IMAGE=$IMAGE_NAME:$TARGET_TAG" | tee -a $GITHUB_ENV
+          echo "ROLLBACK_IMAGE=$IMAGE_NAME:$ROLLBACK_TAG" | tee -a $GITHUB_ENV
 
       - name: Tag target image
         run: |

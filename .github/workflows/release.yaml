@@ -42,13 +42,6 @@ jobs:
     env:
       # Use docker.io for Docker Hub if empty
       REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
-      REGISTRY_USERNAME: ${{ inputs.registry_username || github.actor }}
-      # github.repository as <account>/<repo>
-      IMAGE_NAME: ${{ inputs.image_name || github.repository }}
-      # Image tags
-      SOURCE_TAG: ${{ inputs.source_tag || 'devcontainer' }}
-      TARGET_TAG: ${{ inputs.target_tag || 'latest' }}
-      ROLLBACK_TAG: ${{ inputs.rollback_tag || '' }}
     steps:
       # Login against a Docker registry
       # https://github.com/docker/login-action
@@ -56,19 +49,24 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ env.REGISTRY_USERNAME }}
+          username: ${{ inputs.registry_username || github.actor }}
           password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
 
       - name: Configure image names
+        env:
+          # github.repository as <account>/<repo>
+          IMAGE_NAME: ${{ inputs.image_name || github.repository }}
+          # Image tags
+          SOURCE_TAG: ${{ inputs.source_tag || 'devcontainer' }}
+          TARGET_TAG: ${{ inputs.target_tag || 'latest' }}
+          ROLLBACK_TAG: ${{ inputs.rollback_tag || '' }}
         run: |
-          IMAGE_NAME="${REGISTRY}/${IMAGE_NAME,,}"
-          echo "IMAGE_NAME=$IMAGE_NAME" | tee -a $GITHUB_ENV
-
-          echo "SOURCE_IMAGE=$REGISTRY/$IMAGE_NAME:$SOURCE_TAG" | tee -a $GITHUB_ENV
-          echo "TARGET_IMAGE=$REGISTRY/$IMAGE_NAME:$TARGET_TAG" | tee -a $GITHUB_ENV
+          IMAGE_NAME="${REGISTRY,,}/${IMAGE_NAME,,}"
+          echo "SOURCE_IMAGE=$IMAGE_NAME:$SOURCE_TAG" | tee -a $GITHUB_ENV
+          echo "TARGET_IMAGE=$IMAGE_NAME:$TARGET_TAG" | tee -a $GITHUB_ENV
 
           if [[ -n "$ROLLBACK_TAG" ]]; then
-            echo "ROLLBACK_IMAGE=$REGISTRY/$IMAGE_NAME:$ROLLBACK_TAG" | tee -a $GITHUB_ENV
+            echo "ROLLBACK_IMAGE=$IMAGE_NAME:$ROLLBACK_TAG" | tee -a $GITHUB_ENV
           fi
 
       - name: Tag target and rollback images

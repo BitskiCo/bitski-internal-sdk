@@ -39,6 +39,8 @@ jobs:
       cache_tag: cargo
       matrix: |
         {"tags": "cargo"}
+      dockle: false
+      trivy: false
 
   devcontainer:
     name: Devcontainer
@@ -60,6 +62,7 @@ jobs:
       startup_image_env_name: DEVCONTAINER_IMAGE
       matrix: |
         {"tags": "devcontainer"}
+      dockle: false
 
   rust_1_58:
     name: Rust 1.58
@@ -77,6 +80,7 @@ jobs:
       cache_tag: rust-1.58
       matrix: |
         {"tags": "rust-1.58"}
+      dockle: false
 
   rust_1_57:
     name: Rust 1.57
@@ -92,6 +96,7 @@ jobs:
       cache_tag: rust-1.57
       matrix: |
         {"tags": "rust-1.57"}
+      dockle: false
 
   rust_1_56:
     name: Rust 1.56
@@ -107,6 +112,7 @@ jobs:
       cache_tag: rust-1.56
       matrix: |
         {"tags": "rust-1.56"}
+      dockle: false
 
   rust_1_55:
     name: Rust 1.55
@@ -122,6 +128,7 @@ jobs:
       cache_tag: rust-1.55
       matrix: |
         {"tags": "rust-1.55"}
+      dockle: false
 
   cleanup:
     name: Cleanup

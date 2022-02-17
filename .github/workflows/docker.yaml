@@ -68,6 +68,14 @@ on:
       matrix:
         description: "JSON-encoded GitHub Actions matrix instance"
         type: string
+      dockle:
+        description: "Lint built container with Dockle"
+        type: boolean
+        default: true
+      trivy:
+        description: "Scan built container for vulnerabilities with Trivy"
+        type: boolean
+        default: true
     secrets:
       registry_password:
         description: "Docker registry password, defaults to GITHUB_TOKEN"

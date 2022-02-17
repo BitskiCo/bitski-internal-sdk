@@ -353,7 +353,7 @@ jobs:
         run: |
           IFS=$'\n ' command eval 'MANIFESTS=($MANIFESTS)'
           for MANIFEST in "${MANIFESTS[@]}"; do
-            echo "::group::docker push manifest $MANIFEST"
-            docker push manifest "$MANIFEST"
+            echo "::group::docker manifest push $MANIFEST"
+            docker manifest push "$MANIFEST"
             echo '::endgroup::'
           done

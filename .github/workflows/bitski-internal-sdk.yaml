@@ -146,35 +146,45 @@ jobs:
               org: context.repo.owner,
             };
 
-            const tag = `cargo-${process.env.RUNNER_ARCH.toLowerCase()}-${
-              context.sha
-            }`;
+            const prefix = `cargo-${process.env.RUNNER_ARCH.toLowerCase()}-`;
+            const tag = `${prefix}${context.sha}`;
+            const expireAt = Date.now() - 1000 * 60 * 60 * 2;
 
-            let versionIds = [];
+            const versionIds = [];
             for await (const response of github.paginate.iterator(
               github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg,
               request
             )) {
-              const ids = response.data
-                ?.filter(
-                  (pkg) => pkg?.metadata?.container?.tags?.indexOf(tag) >= 0
-                )
-                .map((pkg) => pkg.id);
-              if (ids.length > 0) {
-                versionIds = ids;
-                break;
-              }
+              versionIds.push(
+                ...response.data
+                  ?.filter((pkg) => {
+                    const tags = pkg?.metadata?.container?.tags || [];
+                    const updatedAt = Date.parse(pkg.updated_at);
+                    return (
+                      tags.indexOf(tag) >= 0 ||
+                      (updatedAt < expireAt &&
+                        tags.some((tag) => tag.startsWith(prefix)))
+                    );
+                  })
+                  .map((pkg) => pkg.id)
+              );
             }
 
             const packageName = `${context.repo.owner}/${context.repo.repo}:${tag}`;
             if (versionIds.length === 0) {
               core.warning(`Package ${packageName} not found`);
-              return;
             }
 
             for (const id of versionIds) {
               request.package_version_id = id;
               try {
+                core.info(
+                  `deletePackageVersionForOrg(${JSON.stringify(
+                    request,
+                    null,
+                    "  "
+                  )})`
+                );
                 await github.rest.packages.deletePackageVersionForOrg(request);
               } catch (err) {
                 core.warning(`Error deleting package ${packageName}: ${err}`);

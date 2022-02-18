@@ -94,6 +94,14 @@ RUN --mount=type=cache,target=$SDK_WORKDIR \
     cargo install --root /usr/local \
     --target-dir $SDK_WORKDIR/target cargo-cache
 
+# Install cargo-edit
+RUN --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$CARGO_HOME/git \
+    --mount=type=cache,target=$CARGO_HOME/registry \
+    --mount=type=cache,target=$SCCACHE_DIR \
+    cargo install --root /usr/local \
+    --target-dir $SDK_WORKDIR/target cargo-edit
+
 # Install cargo-udeps
 RUN --mount=type=cache,target=$SDK_WORKDIR \
     --mount=type=cache,target=$CARGO_HOME/git \
@@ -109,7 +117,7 @@ FROM $CARGO_BIN_BASE AS cargo-bin
 #############################################################################
 FROM $RUST_BASE AS rust
 
-# Install binaries
+# Install cargo binaries
 COPY --from=cargo-bin \
     /usr/local/bin/diesel \
     /usr/local/bin/cargo-cache \
@@ -160,6 +168,14 @@ ENV RUSTC_WRAPPER=sccache
 
 # Always sign Git commits
 RUN git config --system commit.gpgsign true
+
+# Install cargo-edit binaries
+COPY --from=cargo-bin \
+    /usr/local/bin/cargo-add \
+    /usr/local/bin/cargo-rm \
+    /usr/local/bin/cargo-upgrade \
+    /usr/local/bin/cargo-set-version \
+    /usr/local/bin/
 
 # Install Docker
 RUN --mount=target=/usr/local/bin/setup-docker.sh,source=bin/setup-docker.sh \

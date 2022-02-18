@@ -77,6 +77,15 @@ ARG SCCACHE_GCS_OAUTH_URL
 ARG SCCACHE_GCS_RW_MODE
 ARG SCCACHE_GCS_KEY_PREFIX
 
+# Install diesel
+RUN --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$CARGO_HOME/git \
+    --mount=type=cache,target=$CARGO_HOME/registry \
+    --mount=type=cache,target=$SCCACHE_DIR \
+    cargo install --root /usr/local \
+    --no-default-features --features postgres \
+    --target-dir $SDK_WORKDIR/target diesel_cli
+
 # Install cargo-cache
 RUN --mount=type=cache,target=$SDK_WORKDIR \
     --mount=type=cache,target=$CARGO_HOME/git \
@@ -85,14 +94,13 @@ RUN --mount=type=cache,target=$SDK_WORKDIR \
     cargo install --root /usr/local \
     --target-dir $SDK_WORKDIR/target cargo-cache
 
-# Install Diesel client
+# Install cargo-udeps
 RUN --mount=type=cache,target=$SDK_WORKDIR \
     --mount=type=cache,target=$CARGO_HOME/git \
     --mount=type=cache,target=$CARGO_HOME/registry \
     --mount=type=cache,target=$SCCACHE_DIR \
     cargo install --root /usr/local \
-    --no-default-features --features postgres \
-    --target-dir $SDK_WORKDIR/target diesel_cli
+    --target-dir $SDK_WORKDIR/target cargo-udeps
 
 FROM $CARGO_BIN_BASE AS cargo-bin
 
@@ -103,8 +111,9 @@ FROM $RUST_BASE AS rust
 
 # Install binaries
 COPY --from=cargo-bin \
-    /usr/local/bin/cargo-cache \
     /usr/local/bin/diesel \
+    /usr/local/bin/cargo-cache \
+    /usr/local/bin/cargo-udeps \
     /usr/local/bin/
 
 #############################################################################

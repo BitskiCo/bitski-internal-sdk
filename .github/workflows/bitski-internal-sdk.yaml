@@ -52,7 +52,7 @@ jobs:
       build_args: |
         CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
         USERNAME=bitski
-        RUST_VERSION=latest,1.58,1.57,1.56,1.55
+        RUST_VERSION=latest,nightly,1.58,1.57,1.56,1.55
       archs: |
         amd64
         arm64
@@ -75,7 +75,7 @@ jobs:
       target: rust
       build_args: |
         CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
-        RUST_VERSION=1.58
+        RUST_VERSION=1.58,nightly
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.58
       matrix: |
@@ -91,7 +91,7 @@ jobs:
       target: rust
       build_args: |
         CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
-        RUST_VERSION=1.57
+        RUST_VERSION=1.57,nightly
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.57
       matrix: |
@@ -107,7 +107,7 @@ jobs:
       target: rust
       build_args: |
         CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
-        RUST_VERSION=1.56
+        RUST_VERSION=1.56,nightly
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.56
       matrix: |
@@ -123,7 +123,7 @@ jobs:
       target: rust
       build_args: |
         CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
-        RUST_VERSION=1.55
+        RUST_VERSION=1.55,nightly
       push: ${{ github.event_name != 'pull_request' }}
       cache_tag: rust-1.55
       matrix: |

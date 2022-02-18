@@ -21,12 +21,6 @@ on:
       image_name:
         description: "Docker image name. Default: github.repository"
         type: string
-      target:
-        description: "Target stage to build"
-        type: string
-      build_args:
-        description: "Docker build args"
-        type: string
       tags:
         description: "Docker tags"
         type: string
@@ -36,6 +30,12 @@ on:
           type=ref,event=tag
           type=ref,event=pr
           type=sha,format=long
+      target:
+        description: "Target stage to build"
+        type: string
+      build_args:
+        description: "Docker build args"
+        type: string
       archs:
         description: >-
           Architectures to include in multi-arch manifest. Only the native
@@ -48,6 +48,12 @@ on:
         description: "If true, push the build to the registry"
         type: boolean
         default: true
+      load_artifacts:
+        description: "Download and import the Docker images with the given artifact names"
+        type: string
+      save_artifact:
+        description: "Upload the Docker image with the given artifact name"
+        type: string
       cache_tag:
         description: "A tag to scope the Docker cache"
         type: string
@@ -98,6 +104,17 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: ${{ inputs.submodules }}
+
+      - name: Configure image tags
+        env:
+          REGISTRY: ${{ inputs.registry }}
+          IMAGE_NAME: ${{ inputs.image_name || github.repository }}
+        run: |
+          if [[ -n "$REGISTRY" ]]; then
+            echo "IMAGES=${REGISTRY,,}/${IMAGE_NAME,,}" | tee -a $GITHUB_ENV
+          else
+            echo "IMAGES=${IMAGE_NAME,,}" | tee -a $GITHUB_ENV
+          fi
 
       - name: Configure image tags for multiarch manifest
         if: inputs.archs
@@ -155,7 +172,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ${{ inputs.registry }}/${{ inputs.image_name || github.repository }}
+          images: ${{ env.IMAGES }}
           tags: ${{ env.TAGS }}
 
       - name: Configure Docker build args
@@ -177,6 +194,37 @@ jobs:
           registry: ${{ inputs.registry }}
           username: ${{ inputs.registry_username || github.actor }}
           password: ${{ secrets.registry_password || github.token }}
+
+      - name: Download all workflow run artifacts
+        id: download
+        if: inputs.load_artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: /tmp/artifacts
+
+      - name: Start local registry
+        if: inputs.load_artifacts
+        run: |
+          REGISTRY_CONTAINER=`docker run --rm --network host -d registry:2`
+          echo "REGISTRY_CONTAINER=$REGISTRY_CONTAINER" | tee -a $GITHUB_ENV
+
+      - name: Load image artifacts
+        if: inputs.load_artifacts
+        env:
+          ARTIFACTS: ${{ inputs.load_artifacts }}
+          DOWNLOAD_PATH: ${{ steps.download.outputs.download-path }}
+        run: |
+          IFS=$'\n ' command eval 'ARTIFACTS=($ARTIFACTS)'
+          for ARTIFACT in "${ARTIFACTS[@]}"; do
+            echo "::group::docker image load $ARTIFACT"
+            cat "$DOWNLOAD_PATH/$ARTIFACT/${ARTIFACT}.docker.tar.xz" | \
+              xz --decompress --stdout | \
+              docker image load | \
+              tee /dev/stdout | \
+              sed 's/^Loaded image: //' | \
+              xargs -n1 docker push
+            echo '::endgroup::'
+          done
 
       - name: Build Docker image
         id: docker
@@ -320,13 +368,11 @@ jobs:
         env:
           ARCHS: ${{ inputs.archs }}
           BASE_TAGS: ${{ inputs.tags }}
-          BASE_MANIFEST: ${{ inputs.registry }}/${{ inputs.image_name || github.repository }}
+          BASE_MANIFEST: ${{ env.IMAGES }}
           BUILT_TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           IFS=$'\n ' command eval 'ARCHS=($ARCHS)'
           IFS=$'\n ' command eval 'BASE_TAGS=($BASE_TAGS)'
-          BASE_MANIFEST="${BASE_MANIFEST,,}"
-
           IFS=$'\n ' command eval 'BUILT_TAGS=($BUILT_TAGS)'
           BUILT_TAGS="^($(IFS=\|; echo "${BUILT_TAGS[*]}"))$"
 
@@ -368,3 +414,24 @@ jobs:
             docker manifest push "$MANIFEST"
             echo '::endgroup::'
           done
+
+      - name: Save image tar
+        if: inputs.save_artifact
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          FILE: ${{ inputs.save_artifact }}.docker.tar.xz
+        run: |
+          IFS=$'\n ' command eval 'TAGS=($TAGS)'
+          docker image save "${TAGS[@]}" | xz --compress -0 --stdout > "$FILE"
+
+      - name: Upload image tar as artifact
+        if: inputs.save_artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.save_artifact }}
+          path: ${{ inputs.save_artifact }}.docker.tar.xz
+          retention-days: 1
+
+      - name: Stop local registry
+        if: env.REGISTRY_CONTAINER
+        run: docker stop "$REGISTRY_CONTAINER"

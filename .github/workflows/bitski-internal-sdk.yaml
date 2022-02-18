@@ -12,30 +12,16 @@ on:
     - cron: "16 0 * * 0"
 
 jobs:
-  setup:
-    name: Setup
-    runs-on: ubuntu-latest
-    outputs:
-      cargo_image_tag: ${{ steps.cargo.outputs.image_tag }}
-      cargo_image_name: ${{ steps.cargo.outputs.image_name }}
-    steps:
-      - name: Configure Cargo image name
-        id: cargo
-        env:
-          IMAGE_TAG: cargo-${{ runner.arch }}-${{ github.sha }}
-          REGISTRY: ghcr.io/${{ github.repository }}
-        run: |
-          echo "::set-output name=image_tag::${IMAGE_TAG,,}"
-          echo "::set-output name=image_name::${REGISTRY,,}:${IMAGE_TAG,,}"
-
   cargo:
     name: Cargo
-    needs: setup
     uses: ./.github/workflows/docker.yaml
     with:
-      tags: ${{ needs.setup.outputs.cargo_image_tag }}
+      registry: localhost:5000
+      image_name: cargo-${{ github.sha }}
+      tags: latest
       target: cargo
-      push: true
+      push: false
+      save_artifact: cargo
       cache_tag: cargo
       matrix: |
         {"tags": "cargo"}
@@ -44,19 +30,20 @@ jobs:
 
   devcontainer:
     name: Devcontainer
-    needs: [setup, cargo]
+    needs: cargo
     uses: ./.github/workflows/docker.yaml
     with:
       tags: devcontainer
       target: devcontainer
       build_args: |
-        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
+        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
         USERNAME=bitski
         RUST_VERSION=latest,nightly,1.58,1.57,1.56,1.55
       archs: |
         amd64
         arm64
       push: ${{ github.event_name != 'pull_request' }}
+      load_artifacts: cargo
       cache_tag: devcontainer
       startup_test: true
       startup_image_env_name: DEVCONTAINER_IMAGE
@@ -66,7 +53,7 @@ jobs:
 
   rust_1_58:
     name: Rust 1.58
-    needs: [setup, cargo]
+    needs: cargo
     uses: ./.github/workflows/docker.yaml
     with:
       tags: |
@@ -74,9 +61,10 @@ jobs:
         rust-1.58
       target: rust
       build_args: |
-        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
+        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
         RUST_VERSION=1.58,nightly
       push: ${{ github.event_name != 'pull_request' }}
+      load_artifacts: cargo
       cache_tag: rust-1.58
       matrix: |
         {"tags": "rust-1.58"}
@@ -84,15 +72,16 @@ jobs:
 
   rust_1_57:
     name: Rust 1.57
-    needs: [setup, cargo]
+    needs: cargo
     uses: ./.github/workflows/docker.yaml
     with:
       tags: rust-1.57
       target: rust
       build_args: |
-        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
+        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
         RUST_VERSION=1.57,nightly
       push: ${{ github.event_name != 'pull_request' }}
+      load_artifacts: cargo
       cache_tag: rust-1.57
       matrix: |
         {"tags": "rust-1.57"}
@@ -100,15 +89,16 @@ jobs:
 
   rust_1_56:
     name: Rust 1.56
-    needs: [setup, cargo]
+    needs: cargo
     uses: ./.github/workflows/docker.yaml
     with:
       tags: rust-1.56
       target: rust
       build_args: |
-        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
-        RUST_VERSION=1.56,nightly
+        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
+        RUST_VERSION=1.56
       push: ${{ github.event_name != 'pull_request' }}
+      load_artifacts: cargo
       cache_tag: rust-1.56
       matrix: |
         {"tags": "rust-1.56"}
@@ -116,84 +106,17 @@ jobs:
 
   rust_1_55:
     name: Rust 1.55
-    needs: [setup, cargo]
+    needs: cargo
     uses: ./.github/workflows/docker.yaml
     with:
       tags: rust-1.55
       target: rust
       build_args: |
-        CARGO_BIN_BASE=${{ needs.setup.outputs.cargo_image_name }}
-        RUST_VERSION=1.55,nightly
+        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
+        RUST_VERSION=1.55
       push: ${{ github.event_name != 'pull_request' }}
+      load_artifacts: cargo
       cache_tag: rust-1.55
       matrix: |
         {"tags": "rust-1.55"}
       dockle: false
-
-  cleanup:
-    name: Cleanup
-    needs:
-      - devcontainer
-      - rust_1_58
-      - rust_1_57
-      - rust_1_56
-      - rust_1_55
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Remove Cargo image
-        uses: actions/github-script@v6
-        env:
-          RUNNER_ARCH: ${{ runner.arch }}
-        with:
-          script: |
-            const request = {
-              package_type: "container",
-              package_name: context.repo.repo,
-              org: context.repo.owner,
-            };
-
-            const prefix = `cargo-${process.env.RUNNER_ARCH.toLowerCase()}-`;
-            const tag = `${prefix}${context.sha}`;
-            const expireAt = Date.now() - 1000 * 60 * 60 * 2;
-
-            const versionIds = [];
-            for await (const response of github.paginate.iterator(
-              github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg,
-              request
-            )) {
-              versionIds.push(
-                ...response.data
-                  ?.filter((pkg) => {
-                    const tags = pkg?.metadata?.container?.tags || [];
-                    const updatedAt = Date.parse(pkg.updated_at);
-                    return (
-                      tags.indexOf(tag) >= 0 ||
-                      (updatedAt < expireAt &&
-                        tags.some((tag) => tag.startsWith(prefix)))
-                    );
-                  })
-                  .map((pkg) => pkg.id)
-              );
-            }
-
-            const packageName = `${context.repo.owner}/${context.repo.repo}:${tag}`;
-            if (versionIds.length === 0) {
-              core.warning(`Package ${packageName} not found`);
-            }
-
-            for (const id of versionIds) {
-              request.package_version_id = id;
-              try {
-                core.info(
-                  `deletePackageVersionForOrg(${JSON.stringify(
-                    request,
-                    null,
-                    "  "
-                  )})`
-                );
-                await github.rest.packages.deletePackageVersionForOrg(request);
-              } catch (err) {
-                core.warning(`Error deleting package ${packageName}: ${err}`);
-              }
-            }

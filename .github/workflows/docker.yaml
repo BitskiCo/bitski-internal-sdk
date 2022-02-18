@@ -225,6 +225,7 @@ jobs:
           exit $EXIT_CODE
 
       - name: Cache Trivy and Dockle cache
+        if: inputs.trivy || inputs.dockle
         uses: actions/cache@v2
         with:
           path: ${{ github.workspace }}/.cache
@@ -234,6 +235,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-lint-
 
       - name: Scan for vulnerabilities with Trivy
+        if: inputs.trivy
         env:
           CACHE_DIR: ${{ github.workspace }}/.cache
           IMAGE_REF: ${{ github.sha }}
@@ -271,6 +273,7 @@ jobs:
 
       # TODO(jacob): Configure Dockle lint
       - name: Lint with Dockle
+        if: inputs.dockle
         env:
           CACHE_DIR: ${{ github.workspace }}/.cache
           IMAGE_REF: ${{ github.sha }}

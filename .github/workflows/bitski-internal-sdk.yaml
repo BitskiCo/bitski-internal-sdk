@@ -38,7 +38,7 @@ jobs:
       build_args: |
         CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
         USERNAME=bitski
-        RUST_VERSION=latest,nightly,1.58,1.57,1.56,1.55
+        RUST_VERSION=latest,nightly
       archs: |
         amd64
         arm64

@@ -9,7 +9,7 @@ set -e
 docker buildx build \
     --load \
     --build-arg USERNAME=bitski \
-    --build-arg RUST_VERSION=latest,nightly,1.58,1.57,1.56,1.55 \
+    --build-arg RUST_VERSION=latest,nightly \
     --target devcontainer \
     --tag "$IMAGE" \
     "$(dirname "$0")/.."

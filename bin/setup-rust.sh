@@ -101,7 +101,7 @@ export PATH=${CARGO_HOME}/bin:${PATH}
 echo "Installing common Rust dependencies..."
 rustup component add clippy rls rust-analysis rust-src rustfmt
 for rust_version in "${RUSTUP_INSTALL_TOOLCHAINS[@]}"; do
-    rustup toolchain install "$rust_version" --profile $RUSTUP_PROFILE --component clippy rls rust-analysis rust-src rustfmt
+    rustup toolchain install "$rust_version" --profile $RUSTUP_PROFILE
 done
 
 # Make files writable for rustlang group

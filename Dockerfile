@@ -140,6 +140,7 @@ ARG ZSH_VERSION
 
 # Configure cache
 ARG SDK_WORKDIR=/var/cache/bitski-internal-sdk
+ARG GOCACHE=/var/cache/golang
 
 # Configure sccache
 ARG SCCACHE_DIR=/var/cache/sccache
@@ -187,6 +188,7 @@ RUN --mount=target=/usr/local/bin/setup-docker.sh,source=bin/setup-docker.sh \
 # Install OpenShift CLI
 RUN --mount=target=/usr/local/bin/setup-oc.sh,source=bin/setup-oc.sh \
     --mount=type=cache,target=$SDK_WORKDIR \
+    --mount=type=cache,target=$GOCACHE \
     --mount=type=cache,target=$SCCACHE_DIR \
     env CC=sccache-cc setup-oc.sh
 

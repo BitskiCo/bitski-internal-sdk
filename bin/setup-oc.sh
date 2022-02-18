@@ -13,8 +13,8 @@ sccache --show-stats || true
 # Install OpenShift CLI
 # https://github.com/openshift/oc
 
-mkdir -p /tmp/oc
-cd /tmp/oc
+mkdir -p "$SDK_CACHE_DIR/oc"
+cd "$SDK_CACHE_DIR/oc"
 
 if [[ ! -d oc ]]; then
     git clone --depth 1 -b "release-${OC_VERSION}" \

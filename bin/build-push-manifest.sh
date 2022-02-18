@@ -30,7 +30,6 @@ IFS=$'\n' command eval 'LABELS=($LABELS)'
 
 docker buildx build \
     --load \
-    --build-arg USERNAME=bitski \
     --build-arg RUST_VERSION=latest,nightly \
     --target devcontainer \
     --tag "$LOCAL_IMAGE" \

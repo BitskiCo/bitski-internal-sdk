@@ -8,29 +8,37 @@ set -e
 mkdir -p "$SDK_CACHE_DIR/oc"
 cd "$SDK_CACHE_DIR"
 
-sccache --show-stats || true
-
 # Install OpenShift CLI
 # https://github.com/openshift/oc
 
 mkdir -p "$SDK_CACHE_DIR/oc"
 cd "$SDK_CACHE_DIR/oc"
 
-if [[ ! -d oc ]]; then
+if [ ! -d oc ]; then
+    microdnf install -y git
     git clone --depth 1 -b "release-${OC_VERSION}" \
         https://github.com/openshift/oc.git
 fi
 
 cd oc
 
-make oc
+if [ ! -f oc ]; then
+    microdnf install -y \
+        gcc \
+        git \
+        golang \
+        gpgme-devel \
+        krb5-devel \
+        libassuan-devel \
+        make
+    make oc
+fi
+
 cp oc /usr/local/bin
 
 mkdir -p /etc/bash_completion.d /usr/local/share/zsh/site-functions
 cp contrib/completions/bash/oc /etc/bash_completion.d
 cp contrib/completions/zsh/oc /usr/local/share/zsh/site-functions
-
-sccache --stop-server || true
 
 cd /
 rm -rf "$SDK_CACHE_DIR" || true

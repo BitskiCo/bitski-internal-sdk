@@ -12,38 +12,131 @@ on:
     - cron: "16 0 * * 0"
 
 jobs:
-  cargo:
-    name: Cargo
+  openshift-bin:
+    name: oc
     uses: ./.github/workflows/docker.yaml
     with:
       registry: localhost:5000
-      image_name: cargo-${{ github.sha }}
+      image_name: openshift-bin-${{ github.sha }}
       tags: latest
-      target: cargo
+      target: openshift-builder
       push: false
-      save_artifact: cargo
-      cache_tag: cargo
+      save_artifact: openshift-bin
+      cache_tag: openshift-bin
       matrix: |
-        {"tags": "cargo"}
+        {"tags": "openshift-bin"}
+      dockle: false
+      trivy: false
+
+  cargo-cache-bin:
+    name: cargo-cache
+    uses: ./.github/workflows/docker.yaml
+    with:
+      registry: localhost:5000
+      image_name: cargo-cache-bin-${{ github.sha }}
+      tags: latest
+      target: cargo-cache-builder
+      push: false
+      save_artifact: cargo-cache-bin
+      cache_tag: cargo-cache-bin
+      matrix: |
+        {"tags": "cargo-cache-bin"}
+      dockle: false
+      trivy: false
+
+  cargo-edit-bin:
+    name: cargo-edit
+    uses: ./.github/workflows/docker.yaml
+    with:
+      registry: localhost:5000
+      image_name: cargo-edit-bin-${{ github.sha }}
+      tags: latest
+      target: cargo-edit-builder
+      push: false
+      save_artifact: cargo-edit-bin
+      cache_tag: cargo-edit-bin
+      matrix: |
+        {"tags": "cargo-edit-bin"}
+      dockle: false
+      trivy: false
+
+  cargo-udeps-bin:
+    name: cargo-udeps
+    uses: ./.github/workflows/docker.yaml
+    with:
+      registry: localhost:5000
+      image_name: cargo-udeps-bin-${{ github.sha }}
+      tags: latest
+      target: cargo-udeps-builder
+      push: false
+      save_artifact: cargo-udeps-bin
+      cache_tag: cargo-udeps-bin
+      matrix: |
+        {"tags": "cargo-udeps-bin"}
+      dockle: false
+      trivy: false
+
+  diesel-bin:
+    name: diesel
+    uses: ./.github/workflows/docker.yaml
+    with:
+      registry: localhost:5000
+      image_name: diesel-bin-${{ github.sha }}
+      tags: latest
+      target: diesel-builder
+      push: false
+      save_artifact: diesel-bin
+      cache_tag: diesel-bin
+      matrix: |
+        {"tags": "diesel-bin"}
+      dockle: false
+      trivy: false
+
+  sccache-bin:
+    name: sccache
+    uses: ./.github/workflows/docker.yaml
+    with:
+      registry: localhost:5000
+      image_name: sccache-bin-${{ github.sha }}
+      tags: latest
+      target: sccache-builder
+      push: false
+      save_artifact: sccache-bin
+      cache_tag: sccache-bin
+      matrix: |
+        {"tags": "sccache-bin"}
       dockle: false
       trivy: false
 
   devcontainer:
     name: Devcontainer
-    needs: cargo
+    needs:
+      - openshift-bin
+      - cargo-cache-bin
+      - cargo-edit-bin
+      - cargo-udeps-bin
+      - diesel-bin
+      - sccache-bin
     uses: ./.github/workflows/docker.yaml
     with:
       tags: devcontainer
       target: devcontainer
       build_args: |
-        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
-        USERNAME=bitski
+        OPENSHIFT_BIN_BASE=localhost:5000/openshift-bin-${{ github.sha }}
+        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-bin-${{ github.sha }}
+        CARGO_EDIT_BIN_BASE=localhost:5000/cargo-edit-bin-${{ github.sha }}
+        CARGO_UDEPS_BIN_BASE=localhost:5000/cargo-udeps-bin-${{ github.sha }}
+        DIESEL_BIN_BASE=localhost:5000/diesel-bin-${{ github.sha }}
+        SCCACHE_BIN_BASE=localhost:5000/sccache-bin-${{ github.sha }}
         RUST_VERSION=latest,nightly
-      archs: |
-        amd64
-        arm64
       push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: cargo
+      load_artifacts: |
+        openshift-bin
+        cargo-cache-bin
+        cargo-edit-bin
+        cargo-udeps-bin
+        diesel-bin
+        sccache-bin
       cache_tag: devcontainer
       startup_test: true
       startup_image_env_name: DEVCONTAINER_IMAGE
@@ -51,9 +144,13 @@ jobs:
         {"tags": "devcontainer"}
       dockle: false
 
-  rust_1_58:
+  rust-1-58:
     name: Rust 1.58
-    needs: cargo
+    needs:
+      - openshift-bin
+      - cargo-cache-bin
+      - diesel-bin
+      - sccache-bin
     uses: ./.github/workflows/docker.yaml
     with:
       tags: |
@@ -61,61 +158,103 @@ jobs:
         rust-1.58
       target: rust
       build_args: |
-        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
-        RUST_VERSION=1.58,nightly
+        OPENSHIFT_BIN_BASE=localhost:5000/openshift-bin-${{ github.sha }}
+        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-bin-${{ github.sha }}
+        DIESEL_BIN_BASE=localhost:5000/diesel-bin-${{ github.sha }}
+        SCCACHE_BIN_BASE=localhost:5000/sccache-bin-${{ github.sha }}
+        RUST_VERSION=1.58
       push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: cargo
+      load_artifacts: |
+        openshift-bin
+        cargo-cache-bin
+        diesel-bin
+        sccache-bin
       cache_tag: rust-1.58
       matrix: |
         {"tags": "rust-1.58"}
       dockle: false
 
-  rust_1_57:
+  rust-1-57:
     name: Rust 1.57
-    needs: cargo
+    needs:
+      - openshift-bin
+      - cargo-cache-bin
+      - diesel-bin
+      - sccache-bin
     uses: ./.github/workflows/docker.yaml
     with:
       tags: rust-1.57
       target: rust
       build_args: |
-        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
-        RUST_VERSION=1.57,nightly
+        OPENSHIFT_BIN_BASE=localhost:5000/openshift-bin-${{ github.sha }}
+        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-bin-${{ github.sha }}
+        DIESEL_BIN_BASE=localhost:5000/diesel-bin-${{ github.sha }}
+        SCCACHE_BIN_BASE=localhost:5000/sccache-bin-${{ github.sha }}
+        RUST_VERSION=1.57
       push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: cargo
+      load_artifacts: |
+        openshift-bin
+        cargo-cache-bin
+        diesel-bin
+        sccache-bin
       cache_tag: rust-1.57
       matrix: |
         {"tags": "rust-1.57"}
       dockle: false
 
-  rust_1_56:
+  rust-1-56:
     name: Rust 1.56
-    needs: cargo
+    needs:
+      - openshift-bin
+      - cargo-cache-bin
+      - diesel-bin
+      - sccache-bin
     uses: ./.github/workflows/docker.yaml
     with:
       tags: rust-1.56
       target: rust
       build_args: |
-        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
+        OPENSHIFT_BIN_BASE=localhost:5000/openshift-bin-${{ github.sha }}
+        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-bin-${{ github.sha }}
+        DIESEL_BIN_BASE=localhost:5000/diesel-bin-${{ github.sha }}
+        SCCACHE_BIN_BASE=localhost:5000/sccache-bin-${{ github.sha }}
         RUST_VERSION=1.56
       push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: cargo
+      load_artifacts: |
+        openshift-bin
+        cargo-cache-bin
+        diesel-bin
+        sccache-bin
       cache_tag: rust-1.56
       matrix: |
         {"tags": "rust-1.56"}
       dockle: false
 
-  rust_1_55:
+  rust-1-55:
     name: Rust 1.55
-    needs: cargo
+    needs:
+      - openshift-bin
+      - cargo-cache-bin
+      - diesel-bin
+      - sccache-bin
     uses: ./.github/workflows/docker.yaml
     with:
       tags: rust-1.55
       target: rust
       build_args: |
-        CARGO_BIN_BASE=localhost:5000/cargo-${{ github.sha }}
+        OPENSHIFT_BIN_BASE=localhost:5000/openshift-bin-${{ github.sha }}
+        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-bin-${{ github.sha }}
+        DIESEL_BIN_BASE=localhost:5000/diesel-bin-${{ github.sha }}
+        SCCACHE_BIN_BASE=localhost:5000/sccache-bin-${{ github.sha }}
         RUST_VERSION=1.55
       push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: cargo
+      load_artifacts: |
+        openshift-bin
+        cargo-cache-bin
+        cargo-edit-bin
+        cargo-udeps-bin
+        diesel-bin
+        sccache-bin
       cache_tag: rust-1.55
       matrix: |
         {"tags": "rust-1.55"}

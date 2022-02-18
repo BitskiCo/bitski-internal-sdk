@@ -92,13 +92,19 @@ on:
 
 jobs:
   build_and_push:
-    name: Build and push Docker image
+    name: Docker image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     env:
       TAGS: ${{ inputs.tags }}
+      LOCAL_IMAGE: 127.0.0.1:5000/${{ github.sha }}
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -202,12 +208,6 @@ jobs:
         with:
           path: /tmp/artifacts
 
-      - name: Start local registry
-        if: inputs.load_artifacts
-        run: |
-          REGISTRY_CONTAINER=`docker run --rm --network host -d registry:2`
-          echo "REGISTRY_CONTAINER=$REGISTRY_CONTAINER" | tee -a $GITHUB_ENV
-
       - name: Load image artifacts
         if: inputs.load_artifacts
         env:
@@ -238,22 +238,29 @@ jobs:
           ssh: ${{ steps.docker_args.outputs.ssh }}
           cache-from: ${{ steps.docker_args.outputs.cache_from }}
           cache-to: ${{ steps.docker_args.outputs.cache_to }}
-          load: true
-          tags: |
-            ${{ github.sha }}
-            ${{ steps.meta.outputs.tags }}
+          push: true
+          tags: ${{ env.LOCAL_IMAGE }}
           labels: ${{ steps.meta.outputs.labels }}
           target: ${{ inputs.target }}
+
+      - name: Load and tag Docker image
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          docker pull "$LOCAL_IMAGE"
+          IFS=$'\n ' command eval 'TAGS=($TAGS)'
+          for TAG in "${TAGS[@]}"; do
+            docker tag "$LOCAL_IMAGE" "$TAG"
+          done
 
       - name: Run startup tests
         if: inputs.startup_test
         env:
           FILE: ${{ inputs.startup_compose_file }}
           IMAGE_ENV_NAME: ${{ inputs.startup_image_env_name }}
-          IMAGE_NAME: ${{ github.sha }}
         run: |
           if [[ -n "$IMAGE_ENV_NAME" ]]; then
-            eval "export ${IMAGE_ENV_NAME}=$IMAGE_NAME"
+            eval "export $IMAGE_ENV_NAME=$LOCAL_IMAGE"
           fi
 
           echo '::group::docker compose up'
@@ -286,7 +293,6 @@ jobs:
         if: inputs.trivy
         env:
           CACHE_DIR: ${{ github.workspace }}/.cache
-          IMAGE_REF: ${{ github.sha }}
           MATRIX: ${{ inputs.matrix }}
         run: |
           echo '::group::docker pull bitnami/trivy'
@@ -300,7 +306,7 @@ jobs:
             --volume "$CACHE_DIR/trivy:/var/cache/trivy" \
             --volume /var/run/docker.sock:/var/run/docker.sock \
             bitnami/trivy --cache-dir /var/cache/trivy \
-            image --exit-code 1 "$IMAGE_REF"
+            image --exit-code 1 "$LOCAL_IMAGE"
           TRIVY_STATUS=$?
           set -e
           sudo chown -R $USER:$GROUP "$CACHE_DIR/trivy"
@@ -324,7 +330,6 @@ jobs:
         if: inputs.dockle
         env:
           CACHE_DIR: ${{ github.workspace }}/.cache
-          IMAGE_REF: ${{ github.sha }}
           MATRIX: ${{ inputs.matrix }}
         run: |
           echo '::group::docker pull goodwithtech/dockle'
@@ -338,7 +343,7 @@ jobs:
             --volume "$CACHE_DIR/dockle:/var/cache/dockle" \
             --volume /var/run/docker.sock:/var/run/docker.sock \
             goodwithtech/dockle --cache-dir /var/cache/dockle \
-            --timeout 10m --exit-code 1 "$IMAGE_REF"
+            --timeout 10m --exit-code 1 "$LOCAL_IMAGE"
           DOCKLE_STATUS=$?
           set -e
           sudo chown -R $USER:$GROUP "$CACHE_DIR/dockle"
@@ -431,7 +436,3 @@ jobs:
           name: ${{ inputs.save_artifact }}
           path: ${{ inputs.save_artifact }}.docker.tar.xz
           retention-days: 1
-
-      - name: Stop local registry
-        if: env.REGISTRY_CONTAINER
-        run: docker stop "$REGISTRY_CONTAINER"

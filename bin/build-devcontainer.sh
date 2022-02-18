@@ -8,7 +8,6 @@ set -e
 
 docker buildx build \
     --load \
-    --build-arg USERNAME=bitski \
     --build-arg RUST_VERSION=latest,nightly \
     --target devcontainer \
     --tag "$IMAGE" \

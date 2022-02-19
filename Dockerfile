@@ -3,9 +3,9 @@
 ARG DEVCONTAINER_BASE=mcr.microsoft.com/vscode/devcontainers/universal:latest
 ARG OPENSHIFT_BUILDER_BASE=registry.access.redhat.com/ubi8/ubi-minimal
 ARG OPENSHIFT_BIN_BASE=openshift-builder
-ARG RUST_BUILDER_BASE=rust:1-bullseye
-ARG RUST_BASE=rust:1-bullseye
-ARG SCCACHE_BUILDER_BASE=debian:bullseye-slim
+ARG RUST_BUILDER_BASE=rust:1-buster
+ARG RUST_BASE=rust:1-buster
+ARG SCCACHE_BUILDER_BASE=debian:buster-slim
 ARG SCCACHE_BIN_BASE=sccache-builder
 
 ARG CARGO_CACHE_BUILDER_BASE=rust-builder-runtime
@@ -88,8 +88,6 @@ FROM $SCCACHE_BIN_BASE AS sccache-bin
 # Rust binary builder                                                       #
 #############################################################################
 FROM $RUST_BUILDER_BASE AS rust-builder-runtime
-
-ARG CARGO_HOME=/usr/local/cargo
 
 # Upgrade dependencies
 ARG DEBIAN_FRONTEND=noninteractive

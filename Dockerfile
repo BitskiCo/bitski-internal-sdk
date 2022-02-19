@@ -64,11 +64,11 @@ ARG SDK_CACHE_DIR=/var/cache/bitski-internal-sdk
 
 # Upgrade dependencies
 ARG DEBIAN_FRONTEND=noninteractive
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get upgrade -y
 
 # Install dependencies
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get install --no-install-recommends -y ca-certificates curl
 
 # Install sccache
@@ -93,7 +93,7 @@ ARG CARGO_HOME=/usr/local/cargo
 
 # Upgrade dependencies
 ARG DEBIAN_FRONTEND=noninteractive
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get upgrade -y
 
 #---------------------------------------------------------------------------#
@@ -171,7 +171,7 @@ FROM $RUST_BASE AS rust
 
 # Upgrade dependencies
 ARG DEBIAN_FRONTEND=noninteractive
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get upgrade -y
 
 # Install cargo binaries
@@ -199,7 +199,7 @@ FROM $DEVCONTAINER_BASE AS devcontainer
 
 # Upgrade dependencies
 ARG DEBIAN_FRONTEND=noninteractive
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     sudo apt-get update && sudo apt-get upgrade -y
 
 # Install sccache

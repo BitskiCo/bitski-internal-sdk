@@ -225,6 +225,7 @@ jobs:
               xargs -n1 docker push
             echo '::endgroup::'
           done
+          rm -rf "$DOWNLOAD_PATH"
 
       - name: Build Docker image
         id: docker
@@ -303,10 +304,11 @@ jobs:
           mkdir -p "$CACHE_DIR/trivy"
           set +e
           docker run --rm --user root:root \
+            --network host \
             --volume "$CACHE_DIR/trivy:/var/cache/trivy" \
             --volume /var/run/docker.sock:/var/run/docker.sock \
-            bitnami/trivy --cache-dir /var/cache/trivy \
-            image --exit-code 1 "$LOCAL_IMAGE"
+            bitnami/trivy --cache-dir /var/cache/trivy image \
+            --insecure --exit-code 1 "$LOCAL_IMAGE"
           TRIVY_STATUS=$?
           set -e
           sudo chown -R $USER:$GROUP "$CACHE_DIR/trivy"
@@ -340,10 +342,11 @@ jobs:
           mkdir -p "$CACHE_DIR/dockle"
           set +e
           docker run --rm --user root:root \
+            --network host \
             --volume "$CACHE_DIR/dockle:/var/cache/dockle" \
             --volume /var/run/docker.sock:/var/run/docker.sock \
             goodwithtech/dockle --cache-dir /var/cache/dockle \
-            --timeout 10m --exit-code 1 "$LOCAL_IMAGE"
+            --insecure --timeout 10m --exit-code 1 "$LOCAL_IMAGE"
           DOCKLE_STATUS=$?
           set -e
           sudo chown -R $USER:$GROUP "$CACHE_DIR/dockle"

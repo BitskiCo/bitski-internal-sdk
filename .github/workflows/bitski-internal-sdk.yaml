@@ -143,6 +143,7 @@ jobs:
       matrix: |
         {"tags": "devcontainer"}
       dockle: false
+      trivy: false
 
   rust-1-58:
     name: Rust 1.58
@@ -172,7 +173,6 @@ jobs:
       cache_tag: rust-1.58
       matrix: |
         {"tags": "rust-1.58"}
-      dockle: false
 
   rust-1-57:
     name: Rust 1.57
@@ -200,7 +200,6 @@ jobs:
       cache_tag: rust-1.57
       matrix: |
         {"tags": "rust-1.57"}
-      dockle: false
 
   rust-1-56:
     name: Rust 1.56
@@ -228,7 +227,6 @@ jobs:
       cache_tag: rust-1.56
       matrix: |
         {"tags": "rust-1.56"}
-      dockle: false
 
   rust-1-55:
     name: Rust 1.55
@@ -251,11 +249,8 @@ jobs:
       load_artifacts: |
         openshift-bin
         cargo-cache-bin
-        cargo-edit-bin
-        cargo-udeps-bin
         diesel-bin
         sccache-bin
       cache_tag: rust-1.55
       matrix: |
         {"tags": "rust-1.55"}
-      dockle: false

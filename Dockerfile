@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 
 ARG DEVCONTAINER_BASE=mcr.microsoft.com/vscode/devcontainers/universal:latest
+ARG DOWNLOAD_BUILDER_BASE=debian:buster-slim
+ARG DOWNLOAD_BIN_BASE=download-builder
 ARG OPENSHIFT_BUILDER_BASE=registry.access.redhat.com/ubi8/ubi-minimal
 ARG OPENSHIFT_BIN_BASE=openshift-builder
 ARG RUST_BUILDER_BASE=rust:1-buster
 ARG RUST_BASE=rust:1-buster
-ARG SCCACHE_BUILDER_BASE=debian:buster-slim
-ARG SCCACHE_BIN_BASE=sccache-builder
 
 ARG CARGO_CACHE_BUILDER_BASE=rust-builder-runtime
 ARG CARGO_CACHE_BIN_BASE=cargo-cache-builder
@@ -16,6 +16,39 @@ ARG CARGO_UDEPS_BUILDER_BASE=rust-builder-runtime
 ARG CARGO_UDEPS_BIN_BASE=cargo-udeps-builder
 ARG DIESEL_BUILDER_BASE=rust-builder-runtime
 ARG DIESEL_BIN_BASE=diesel-builder
+
+#############################################################################
+# Download builder                                                          #
+#############################################################################
+FROM $DOWNLOAD_BUILDER_BASE as download-builder-runtime
+
+ARG DOCKLE_VERSION
+ARG SCCACHE_VERSION
+ARG TRIVY_VERSION
+
+# Configure cache
+ARG SDK_CACHE_DIR=/var/cache/bitski-internal-sdk
+
+# Upgrade dependencies
+ARG DEBIAN_FRONTEND=noninteractive
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && apt-get upgrade -y
+
+# Install dependencies
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get install --no-install-recommends -y ca-certificates curl
+
+# Download binaries
+RUN --mount=target=/usr/local/bin/setup-downloads.sh,source=bin/setup-downloads.sh \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,target=$SDK_CACHE_DIR \
+    setup-downloads.sh
+
+FROM scratch AS download-builder
+
+COPY --from=download-builder-runtime /usr/local/bin/* /usr/local/bin/
+
+FROM $DOWNLOAD_BIN_BASE AS download-bin
 
 #############################################################################
 # OpenShift binary builder                                                  #
@@ -53,38 +86,6 @@ COPY --from=openshift-builder-runtime \
 FROM $OPENSHIFT_BIN_BASE as openshift-bin
 
 #############################################################################
-# sccache binary builder                                                    #
-#############################################################################
-FROM $SCCACHE_BUILDER_BASE as sccache-builder-runtime
-
-ARG SCCACHE_VERSION
-
-# Configure cache
-ARG SDK_CACHE_DIR=/var/cache/bitski-internal-sdk
-
-# Upgrade dependencies
-ARG DEBIAN_FRONTEND=noninteractive
-RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && apt-get upgrade -y
-
-# Install dependencies
-RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get install --no-install-recommends -y ca-certificates curl
-
-# Install sccache
-RUN --mount=target=/usr/local/bin/setup-sccache.sh,source=bin/setup-sccache.sh \
-    --mount=type=cache,target=$SDK_CACHE_DIR \
-    setup-sccache.sh
-
-FROM scratch AS sccache-builder
-
-COPY --from=sccache-builder-runtime \
-    /usr/local/bin/sccache \
-    /usr/local/bin/
-
-FROM $SCCACHE_BIN_BASE AS sccache-bin
-
-#############################################################################
 # Rust binary builder                                                       #
 #############################################################################
 FROM $RUST_BUILDER_BASE AS rust-builder-runtime
@@ -104,9 +105,7 @@ RUN --mount=type=cache,target=$CARGO_HOME/git \
 
 FROM scratch AS cargo-cache-builder
 
-COPY --from=cargo-cache-builder-runtime \
-    /usr/local/bin/cargo-cache \
-    /usr/local/bin/
+COPY --from=cargo-cache-builder-runtime /usr/local/bin/* /usr/local/bin/
 
 FROM $CARGO_CACHE_BIN_BASE AS cargo-cache-bin
 
@@ -120,12 +119,7 @@ RUN --mount=type=cache,target=$CARGO_HOME/git \
 
 FROM scratch AS cargo-edit-builder
 
-COPY --from=cargo-edit-builder-runtime \
-    /usr/local/bin/cargo-add \
-    /usr/local/bin/cargo-rm \
-    /usr/local/bin/cargo-set-version \
-    /usr/local/bin/cargo-upgrade \
-    /usr/local/bin/
+COPY --from=cargo-edit-builder-runtime /usr/local/bin/* /usr/local/bin/
 
 FROM $CARGO_EDIT_BIN_BASE AS cargo-edit-bin
 
@@ -139,9 +133,7 @@ RUN --mount=type=cache,target=$CARGO_HOME/git \
 
 FROM scratch AS cargo-udeps-builder
 
-COPY --from=cargo-udeps-builder-runtime \
-    /usr/local/bin/cargo-udeps \
-    /usr/local/bin/
+COPY --from=cargo-cache-builder-runtime /usr/local/bin/* /usr/local/bin/
 
 FROM $CARGO_UDEPS_BIN_BASE AS cargo-udeps-bin
 
@@ -172,23 +164,15 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get upgrade -y
 
-# Install cargo binaries
-COPY --from=cargo-cache-bin \
-    /usr/local/bin/cargo-cache \
-    /usr/local/bin/
-COPY --from=diesel-bin \
-    /usr/local/bin/diesel \
-    /usr/local/bin/
+# Install Rust binaries
+COPY --from=cargo-cache-bin /usr/local/bin/* /usr/local/bin/
+COPY --from=diesel-bin /usr/local/bin/* /usr/local/bin/
 
 # Install OpenShift client
-COPY --from=openshift-bin \
-    /usr/local/bin/oc \
-    /usr/local/bin/
+COPY --from=openshift-bin /usr/local/bin/* /usr/local/bin/
 
-# Install sccache
-COPY --from=sccache-bin \
-    /usr/local/bin/sccache \
-    /usr/local/bin/
+# Install dockle, sccache, and trivy
+COPY --from=download-bin /usr/local/bin/* /usr/local/bin/
 
 #############################################################################
 # Devcontainer                                                              #
@@ -200,27 +184,14 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     sudo apt-get update && sudo apt-get upgrade -y
 
-# Install sccache
-COPY --from=sccache-bin \
-    /usr/local/bin/sccache \
-    /usr/local/bin/
-
 # Install Rust binaries
-COPY --from=cargo-cache-bin \
-    /usr/local/bin/cargo-cache \
-    /usr/local/bin/
-COPY --from=cargo-edit-bin \
-    /usr/local/bin/cargo-add \
-    /usr/local/bin/cargo-rm \
-    /usr/local/bin/cargo-set-version \
-    /usr/local/bin/cargo-upgrade \
-    /usr/local/bin/
-COPY --from=cargo-udeps-bin \
-    /usr/local/bin/cargo-udeps \
-    /usr/local/bin/
-COPY --from=diesel-bin \
-    /usr/local/bin/diesel \
-    /usr/local/bin/
+COPY --from=cargo-cache-bin /usr/local/bin/* /usr/local/bin/
+COPY --from=cargo-edit-bin /usr/local/bin/* /usr/local/bin/
+COPY --from=cargo-udeps-bin /usr/local/bin/* /usr/local/bin/
+COPY --from=diesel-bin /usr/local/bin/* /usr/local/bin/
+
+# Install dockle, sccache, and trivy
+COPY --from=download-bin /usr/local/bin/* /usr/local/bin/
 
 # Install OpenShift client
 COPY --from=openshift-bin \

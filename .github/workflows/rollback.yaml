@@ -55,27 +55,27 @@ jobs:
             const workflowName = process.env.RELEASE_WORKFLOW;
             const options = context.repo;
 
-            let workflowId;
+            let workflow;
             for await (const response of github.paginate.iterator(
               github.rest.actions.listRepoWorkflows,
               options
             )) {
               core.debug(`response = ${JSON.stringify(response, null, "  ")}`);
-              let workflow =
+              let wflow =
                 response.data &&
                 response.data.find((it) => it.name === workflowName);
-              if (workflow && workflow.id != null) {
-                workflowId = workflow.id;
+              if (wflow) {
+                workflow = wflow;
                 break;
               }
             }
 
-            if (workflowId == null) {
+            if (workflow == null) {
               core.setFailed(
                 `Workflow ${JSON.stringify(workflowName)} not found`
               );
-            } else {
-              options.workflow_id = workflowId;
+            } else if (workflow.state === "active") {
+              options.workflow_id = workflow.id;
               await github.rest.actions.disableWorkflow(options);
             }
 

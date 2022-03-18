@@ -54,6 +54,10 @@ on:
       save_artifact:
         description: "Upload the Docker image with the given artifact name"
         type: string
+      cache:
+        description: "Enable cache"
+        type: boolean
+        default: false
       cache_tag:
         description: "A tag to scope the Docker cache"
         type: string
@@ -186,8 +190,10 @@ jobs:
         env:
           SCOPE: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache_tag }}-${{ hashFiles(inputs.file) }}
         run: |
-          echo "::set-output name=cache_from::type=gha,scope=$SCOPE"
-          echo "::set-output name=cache_to::type=gha,scope=${SCOPE},mode=max"
+          if ${{ inputs.cache }}; then
+            echo "::set-output name=cache_from::type=gha,scope=$SCOPE"
+            echo "::set-output name=cache_to::type=gha,scope=${SCOPE},mode=max"
+          fi
 
           if [[ -n "$SSH_AUTH_SOCK" ]]; then
             echo "::set-output name=ssh::default=$SSH_AUTH_SOCK"

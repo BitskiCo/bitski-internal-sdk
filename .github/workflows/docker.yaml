@@ -276,12 +276,12 @@ jobs:
           echo '::endgroup::'
 
           echo '::group::docker compose logs'
-          docker compose logs
+          docker compose --file "$FILE" logs
           echo '::endgroup::'
 
           echo '::group::docker compose down'
-          docker compose kill
-          docker compose down
+          docker compose --file "$FILE" kill
+          docker compose --file "$FILE" down
           echo '::endgroup::'
 
           exit $EXIT_CODE

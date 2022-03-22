@@ -139,8 +139,8 @@ jobs:
       dockle: false
       trivy: false
 
-  rust-1-58:
-    name: Rust 1.58
+  rust-1-59:
+    name: Rust 1.59
     needs:
       - openshift
       - cargo-cache
@@ -150,7 +150,34 @@ jobs:
     with:
       tags: |
         rust
-        rust-1.58
+        rust-1.59
+      target: rust
+      build_args: |
+        OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}
+        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-${{ github.sha }}
+        DIESEL_BIN_BASE=localhost:5000/diesel-${{ github.sha }}
+        DOWNLOAD_BIN_BASE=localhost:5000/download-${{ github.sha }}
+        RUST_VERSION=1.59
+      push: ${{ github.event_name != 'pull_request' }}
+      load_artifacts: |
+        openshift
+        cargo-cache
+        diesel
+        download
+      cache_tag: rust-1.59
+      matrix: |
+        {"tags": "rust-1.59"}
+
+  rust-1-58:
+    name: Rust 1.58
+    needs:
+      - openshift
+      - cargo-cache
+      - diesel
+      - download
+    uses: ./.github/workflows/docker.yaml
+    with:
+      tags: rust-1.58
       target: rust
       build_args: |
         OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}

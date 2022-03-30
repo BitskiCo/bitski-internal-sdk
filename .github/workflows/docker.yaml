@@ -271,7 +271,7 @@ jobs:
           fi
 
           echo '::group::docker compose up'
-          docker compose --file "$FILE" up --wait
+          timeout 30 docker compose --file "$FILE" up --wait
           EXIT_CODE=$?
           echo '::endgroup::'
 

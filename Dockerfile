@@ -162,7 +162,9 @@ FROM $RUST_BASE AS rust
 # Upgrade dependencies
 ARG DEBIAN_FRONTEND=noninteractive
 RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && apt-get upgrade -y
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y zstd
 
 # Install Rust binaries
 COPY --from=cargo-cache-bin /usr/local/bin/* /usr/local/bin/
@@ -182,7 +184,9 @@ FROM $DEVCONTAINER_BASE AS devcontainer
 # Upgrade dependencies
 ARG DEBIAN_FRONTEND=noninteractive
 RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    sudo apt-get update && sudo apt-get upgrade -y
+    sudo apt-get update && \
+    sudo apt-get upgrade -y && \
+    sudo apt-get install -y zstd
 
 # Install Rust binaries
 COPY --from=cargo-cache-bin /usr/local/bin/* /usr/local/bin/

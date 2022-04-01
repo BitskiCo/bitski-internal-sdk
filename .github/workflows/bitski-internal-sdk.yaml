@@ -21,6 +21,7 @@ jobs:
       target: openshift-builder
       push: false
       save_artifact: openshift
+      cache: true
       cache_tag: openshift
       matrix: |
         {"tags": "openshift"}
@@ -36,6 +37,7 @@ jobs:
       target: cargo-cache-builder
       push: false
       save_artifact: cargo-cache
+      cache: true
       cache_tag: cargo-cache
       matrix: |
         {"tags": "cargo-cache"}
@@ -51,6 +53,7 @@ jobs:
       target: cargo-edit-builder
       push: false
       save_artifact: cargo-edit
+      cache: true
       cache_tag: cargo-edit
       matrix: |
         {"tags": "cargo-edit"}
@@ -66,6 +69,7 @@ jobs:
       target: cargo-udeps-builder
       push: false
       save_artifact: cargo-udeps
+      cache: true
       cache_tag: cargo-udeps
       matrix: |
         {"tags": "cargo-udeps"}
@@ -81,6 +85,7 @@ jobs:
       target: diesel-builder
       push: false
       save_artifact: diesel
+      cache: true
       cache_tag: diesel
       matrix: |
         {"tags": "diesel"}
@@ -96,6 +101,7 @@ jobs:
       target: download-builder
       push: false
       save_artifact: download
+      cache: true
       cache_tag: download
       matrix: |
         {"tags": "download"}
@@ -131,6 +137,7 @@ jobs:
         cargo-udeps
         diesel
         download
+      cache: true
       cache_tag: devcontainer
       startup_test: true
       startup_image_env_name: DEVCONTAINER_IMAGE
@@ -164,6 +171,7 @@ jobs:
         cargo-cache
         diesel
         download
+      cache: true
       cache_tag: rust-1.59
       matrix: |
         {"tags": "rust-1.59"}
@@ -191,6 +199,7 @@ jobs:
         cargo-cache
         diesel
         download
+      cache: true
       cache_tag: rust-1.58
       matrix: |
         {"tags": "rust-1.58"}
@@ -218,6 +227,7 @@ jobs:
         cargo-cache
         diesel
         download
+      cache: true
       cache_tag: rust-1.57
       matrix: |
         {"tags": "rust-1.57"}
@@ -245,6 +255,7 @@ jobs:
         cargo-cache
         diesel
         download
+      cache: true
       cache_tag: rust-1.56
       matrix: |
         {"tags": "rust-1.56"}
@@ -272,6 +283,7 @@ jobs:
         cargo-cache
         diesel
         download
+      cache: true
       cache_tag: rust-1.55
       matrix: |
         {"tags": "rust-1.55"}

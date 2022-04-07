@@ -146,8 +146,8 @@ jobs:
       dockle: false
       trivy: false
 
-  rust-1-59:
-    name: Rust 1.59
+  rust:
+    name: Rust
     needs:
       - openshift
       - cargo-cache
@@ -155,16 +155,13 @@ jobs:
       - download
     uses: ./.github/workflows/docker.yaml
     with:
-      tags: |
-        rust
-        rust-1.59
+      tags: rust
       target: rust
       build_args: |
         OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}
         CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-${{ github.sha }}
         DIESEL_BIN_BASE=localhost:5000/diesel-${{ github.sha }}
         DOWNLOAD_BIN_BASE=localhost:5000/download-${{ github.sha }}
-        RUST_VERSION=1.59
       push: ${{ github.event_name != 'pull_request' }}
       load_artifacts: |
         openshift
@@ -172,118 +169,6 @@ jobs:
         diesel
         download
       cache: true
-      cache_tag: rust-1.59
+      cache_tag: rust
       matrix: |
-        {"tags": "rust-1.59"}
-
-  rust-1-58:
-    name: Rust 1.58
-    needs:
-      - openshift
-      - cargo-cache
-      - diesel
-      - download
-    uses: ./.github/workflows/docker.yaml
-    with:
-      tags: rust-1.58
-      target: rust
-      build_args: |
-        OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}
-        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-${{ github.sha }}
-        DIESEL_BIN_BASE=localhost:5000/diesel-${{ github.sha }}
-        DOWNLOAD_BIN_BASE=localhost:5000/download-${{ github.sha }}
-        RUST_VERSION=1.58
-      push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: |
-        openshift
-        cargo-cache
-        diesel
-        download
-      cache: true
-      cache_tag: rust-1.58
-      matrix: |
-        {"tags": "rust-1.58"}
-
-  rust-1-57:
-    name: Rust 1.57
-    needs:
-      - openshift
-      - cargo-cache
-      - diesel
-      - download
-    uses: ./.github/workflows/docker.yaml
-    with:
-      tags: rust-1.57
-      target: rust
-      build_args: |
-        OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}
-        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-${{ github.sha }}
-        DIESEL_BIN_BASE=localhost:5000/diesel-${{ github.sha }}
-        DOWNLOAD_BIN_BASE=localhost:5000/download-${{ github.sha }}
-        RUST_VERSION=1.57
-      push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: |
-        openshift
-        cargo-cache
-        diesel
-        download
-      cache: true
-      cache_tag: rust-1.57
-      matrix: |
-        {"tags": "rust-1.57"}
-
-  rust-1-56:
-    name: Rust 1.56
-    needs:
-      - openshift
-      - cargo-cache
-      - diesel
-      - download
-    uses: ./.github/workflows/docker.yaml
-    with:
-      tags: rust-1.56
-      target: rust
-      build_args: |
-        OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}
-        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-${{ github.sha }}
-        DIESEL_BIN_BASE=localhost:5000/diesel-${{ github.sha }}
-        DOWNLOAD_BIN_BASE=localhost:5000/download-${{ github.sha }}
-        RUST_VERSION=1.56
-      push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: |
-        openshift
-        cargo-cache
-        diesel
-        download
-      cache: true
-      cache_tag: rust-1.56
-      matrix: |
-        {"tags": "rust-1.56"}
-
-  rust-1-55:
-    name: Rust 1.55
-    needs:
-      - openshift
-      - cargo-cache
-      - diesel
-      - download
-    uses: ./.github/workflows/docker.yaml
-    with:
-      tags: rust-1.55
-      target: rust
-      build_args: |
-        OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}
-        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-${{ github.sha }}
-        DIESEL_BIN_BASE=localhost:5000/diesel-${{ github.sha }}
-        DOWNLOAD_BIN_BASE=localhost:5000/download-${{ github.sha }}
-        RUST_VERSION=1.55
-      push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: |
-        openshift
-        cargo-cache
-        diesel
-        download
-      cache: true
-      cache_tag: rust-1.55
-      matrix: |
-        {"tags": "rust-1.55"}
+        {"tags": "rust"}

@@ -1,65 +1,67 @@
 name: Release
 
 on:
-  pull_request:
-    paths:
-      - .github/workflows/release.yaml
   workflow_call:
     inputs:
       registry:
         description: "Docker registry"
-        default: ghcr.io
         type: string
+        default: ghcr.io
+        required: false
       registry_username:
         description: "Docker registry username"
-        default: ${{ github.actor }}
         type: string
+        default: ${{ github.actor }}
+        required: false
       image_name:
         description: "Docker image name"
-        default: ${{ github.repository }}
         type: string
+        default: ${{ github.repository }}
+        required: false
       source_tag:
         description: "The source image tag to release"
-        default: main
         type: string
+        default: main
+        required: false
       target_tag:
         description: "The target image tag to release"
-        default: latest
         type: string
+        default: latest
+        required: false
       rollback_tag:
         description: "The rollback image tag"
-        default: rollback
         type: string
+        default: rollback
+        required: false
     secrets:
       registry_password:
-        description: "Docker registry password, defaults to GITHUB_TOKEN"
+        description: "Docker registry password"
+        required: true
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       packages: write
-    env:
-      # Use docker.io for Docker Hub if empty
-      REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
     steps:
       # Login against a Docker registry
       # https://github.com/docker/login-action
       - name: Log into Docker registry
         uses: docker/login-action@v1
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ inputs.registry_username || github.actor }}
-          password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry_username }}
+          password: ${{ secrets.registry_password }}
 
       - name: Configure image names
         env:
+          REGISTRY: ${{ inputs.registry }}
           # github.repository as <account>/<repo>
-          IMAGE_NAME: ${{ inputs.image_name || github.repository }}
+          IMAGE_NAME: ${{ inputs.image_name }}
           # Image tags
-          SOURCE_TAG: ${{ inputs.source_tag || 'devcontainer' }}
-          TARGET_TAG: ${{ inputs.target_tag || 'latest' }}
-          ROLLBACK_TAG: ${{ inputs.rollback_tag || '' }}
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          TARGET_TAG: ${{ inputs.target_tag }}
+          ROLLBACK_TAG: ${{ inputs.rollback_tag }}
         run: |
           IMAGE_NAME="${REGISTRY,,}/${IMAGE_NAME,,}"
           echo "SOURCE_IMAGE=$IMAGE_NAME:$SOURCE_TAG" | tee -a $GITHUB_ENV

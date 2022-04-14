@@ -1,4 +1,5 @@
 name: Bitski Internal SDK
+
 on:
   pull_request:
     paths:
@@ -9,7 +10,12 @@ on:
   push:
     branches: [main]
   schedule:
+    # Release Sundays at 4:16 PM PST
     - cron: "16 0 * * 0"
+
+concurrency: 
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   openshift:

@@ -164,7 +164,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y zstd
+    apt-get install -y cmake zstd
 
 # Install Rust binaries
 COPY --from=cargo-cache-bin /usr/local/bin/* /usr/local/bin/

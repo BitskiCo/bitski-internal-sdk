@@ -114,6 +114,17 @@ jobs:
       dockle: false
       trivy: false
 
+  envsubst:
+    uses: ./.github/workflows/docker.yaml
+    with:
+      file: Dockerfile.envsubst
+      image_name: ${{ github.repository_owner }}/envsubst
+      push: ${{ github.event_name != 'pull_request' }}
+      cache: ${{ github.event_name == 'pull_request' }}
+      cache_tag: envsubst
+      matrix: |
+        {"tags": "envsubst"}
+
   devcontainer:
     name: Devcontainer
     needs:

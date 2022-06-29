@@ -187,10 +187,10 @@ jobs:
         run: |
           if ${{ steps.ssh.outputs.use != null }}; then
             if [[ ! -f .gitconfig ]]; then
-              cp ~/.gitconfig .gitconfig
+              cat ~/.gitconfig | tee .gitconfig
             fi
             if [[ ! -f .sshconfig ]]; then
-              cp ~/.ssh/config .sshconfig
+              cat ~/.ssh/config | sed 's/IdentityFile.*/ForwardAgent yes/g' | tee .sshconfig
             fi
           fi
           touch .gitconfig

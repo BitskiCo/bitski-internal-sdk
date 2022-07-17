@@ -20,7 +20,7 @@ ARG DIESEL_BIN_BASE=diesel-builder
 #############################################################################
 # Download builder                                                          #
 #############################################################################
-FROM $DOWNLOAD_BUILDER_BASE as download-builder-runtime
+FROM $DOWNLOAD_BUILDER_BASE AS download-builder-runtime
 
 ARG DOCKLE_VERSION
 ARG SCCACHE_VERSION
@@ -44,9 +44,12 @@ RUN --mount=target=/usr/local/bin/setup-downloads.sh,source=bin/setup-downloads.
     --mount=type=cache,target=$SDK_CACHE_DIR \
     setup-downloads.sh
 
+FROM bufbuild/buf AS download-buf
+
 FROM scratch AS download-builder
 
 COPY --from=download-builder-runtime /usr/local/bin/* /usr/local/bin/
+COPY --from=download-buf /usr/local/bin/* /usr/local/bin/
 
 FROM $DOWNLOAD_BIN_BASE AS download-bin
 

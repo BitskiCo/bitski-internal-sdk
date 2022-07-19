@@ -44,7 +44,7 @@ RUN --mount=target=/usr/local/bin/setup-downloads.sh,source=bin/setup-downloads.
     --mount=type=cache,target=$SDK_CACHE_DIR \
     setup-downloads.sh
 
-FROM bufbuild/buf AS download-buf
+FROM bufbuild/buf:1.6.0 AS download-buf
 
 FROM scratch AS download-builder
 

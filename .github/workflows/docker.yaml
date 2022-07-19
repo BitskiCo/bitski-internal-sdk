@@ -253,7 +253,9 @@ jobs:
         id: docker_args
         run: |
           if ${{ inputs.cache }}; then
-            echo "::set-output name=cache_from::type=local,src=/tmp/.buildx-cache"
+            if [ -f /tmp/.buildx-cache/index.json ]; then
+              echo "::set-output name=cache_from::type=local,src=/tmp/.buildx-cache"
+            fi
             echo "::set-output name=cache_to::type=local,dest=/tmp/.buildx-cache-new,mode=max"
           fi
 

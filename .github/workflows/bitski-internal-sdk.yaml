@@ -125,43 +125,43 @@ jobs:
       matrix: |
         {"tags": "envsubst"}
 
-  devcontainer:
-    name: Devcontainer
-    needs:
-      - openshift
-      - cargo-cache
-      - cargo-edit
-      - cargo-udeps
-      - diesel
-      - download
-    uses: ./.github/workflows/docker.yaml
-    with:
-      tags: devcontainer
-      target: devcontainer
-      build_args: |
-        OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}
-        CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-${{ github.sha }}
-        CARGO_EDIT_BIN_BASE=localhost:5000/cargo-edit-${{ github.sha }}
-        CARGO_UDEPS_BIN_BASE=localhost:5000/cargo-udeps-${{ github.sha }}
-        DIESEL_BIN_BASE=localhost:5000/diesel-${{ github.sha }}
-        DOWNLOAD_BIN_BASE=localhost:5000/download-${{ github.sha }}
-        RUST_VERSION=latest,nightly
-      push: ${{ github.event_name != 'pull_request' }}
-      load_artifacts: |
-        openshift
-        cargo-cache
-        cargo-edit
-        cargo-udeps
-        diesel
-        download
-      cache: true
-      cache_tag: devcontainer
-      startup_test: true
-      startup_image_env_name: DEVCONTAINER_IMAGE
-      matrix: |
-        {"tags": "devcontainer"}
-      dockle: false
-      trivy: false
+  # devcontainer:
+  #   name: Devcontainer
+  #   needs:
+  #     - openshift
+  #     - cargo-cache
+  #     - cargo-edit
+  #     - cargo-udeps
+  #     - diesel
+  #     - download
+  #   uses: ./.github/workflows/docker.yaml
+  #   with:
+  #     tags: devcontainer
+  #     target: devcontainer
+  #     build_args: |
+  #       OPENSHIFT_BIN_BASE=localhost:5000/openshift-${{ github.sha }}
+  #       CARGO_CACHE_BIN_BASE=localhost:5000/cargo-cache-${{ github.sha }}
+  #       CARGO_EDIT_BIN_BASE=localhost:5000/cargo-edit-${{ github.sha }}
+  #       CARGO_UDEPS_BIN_BASE=localhost:5000/cargo-udeps-${{ github.sha }}
+  #       DIESEL_BIN_BASE=localhost:5000/diesel-${{ github.sha }}
+  #       DOWNLOAD_BIN_BASE=localhost:5000/download-${{ github.sha }}
+  #       RUST_VERSION=latest,nightly
+  #     push: ${{ github.event_name != 'pull_request' }}
+  #     load_artifacts: |
+  #       openshift
+  #       cargo-cache
+  #       cargo-edit
+  #       cargo-udeps
+  #       diesel
+  #       download
+  #     cache: true
+  #     cache_tag: devcontainer
+  #     startup_test: true
+  #     startup_image_env_name: DEVCONTAINER_IMAGE
+  #     matrix: |
+  #       {"tags": "devcontainer"}
+  #     dockle: false
+  #     trivy: false
 
   rust:
     name: Rust

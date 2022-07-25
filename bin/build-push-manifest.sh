@@ -22,7 +22,7 @@ AMD64_DIGEST=`docker pull --platform amd64 "$IMAGE" | \
     grep Digest | cut -d' ' -f2`
 
 LABELS=`docker inspect "$IMAGE_NAME@$AMD64_DIGEST" | jq -r '
-    .[0].Config.Labels | .architecture = "aarch64" |
+    .[0].Config.Labels |
     to_entries | map(["--label", .key + "=" + .value]) |
     flatten | .[]'`
 
@@ -30,8 +30,8 @@ IFS=$'\n' command eval 'LABELS=($LABELS)'
 
 docker buildx build \
     --load \
-    --build-arg RUST_VERSION=latest,nightly \
-    --target devcontainer \
+    --platform linux/arm64 \
+    --target "$TAG" \
     --tag "$LOCAL_IMAGE" \
     "${LABELS[@]}" \
     "$(dirname "$0")/.."
@@ -41,6 +41,8 @@ docker push "$IMAGE-amd64"
 
 docker tag "$LOCAL_IMAGE" "$IMAGE-arm64"
 docker push "$IMAGE-arm64"
+
+docker manifest rm "$IMAGE"
 
 docker manifest create "$IMAGE" \
     --amend "$IMAGE-amd64" \

@@ -108,6 +108,11 @@ on:
         type: boolean
         default: true
         required: false
+      statup_timeout:
+        description: "Timeout for startup test in seconds"
+        type: number
+        default: 180
+        required: false
     secrets:
       registry_password:
         description: "Docker registry password, defaults to GITHUB_TOKEN"
@@ -316,6 +321,7 @@ jobs:
         env:
           FILE: ${{ inputs.startup_compose_file }}
           IMAGE_ENV_NAME: ${{ inputs.startup_image_env_name }}
+          STARTUP_TIMEOUT: ${{ inputs.startup_timeout }}
         run: |
           if [[ -n "$IMAGE_ENV_NAME" ]]; then
             eval "export $IMAGE_ENV_NAME=$LOCAL_IMAGE"
@@ -323,7 +329,7 @@ jobs:
 
           echo '::group::docker compose up'
           docker compose --file "$FILE" build
-          timeout 3m docker compose --file "$FILE" up --wait
+          timeout "${STARTUP_TIMEOUT}s" docker compose --file "$FILE" up --wait
           EXIT_CODE=$?
           echo '::endgroup::'
 

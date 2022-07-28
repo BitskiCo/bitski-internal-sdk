@@ -90,6 +90,11 @@ on:
         description: "Environment variables to set as the built image name"
         type: string
         required: false
+      startup_timeout:
+        description: "Timeout for startup test"
+        type: string
+        default: 5m
+        required: false
       submodules:
         description: "Checkout submodules"
         type: string
@@ -107,11 +112,6 @@ on:
         description: "Scan built container for vulnerabilities with Trivy"
         type: boolean
         default: true
-        required: false
-      statup_timeout:
-        description: "Timeout for startup test in seconds"
-        type: number
-        default: 180
         required: false
     secrets:
       registry_password:
@@ -327,9 +327,12 @@ jobs:
             eval "export $IMAGE_ENV_NAME=$LOCAL_IMAGE"
           fi
 
+          echo '::group::docker compose create'
+          docker compose --file "$FILE" create
+          echo '::endgroup::'
+
           echo '::group::docker compose up'
-          docker compose --file "$FILE" build
-          timeout "${STARTUP_TIMEOUT}s" docker compose --file "$FILE" up --wait
+          timeout "${STARTUP_TIMEOUT}" docker compose --file "$FILE" up --wait
           EXIT_CODE=$?
           echo '::endgroup::'
 

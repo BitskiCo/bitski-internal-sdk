@@ -147,7 +147,7 @@ FROM $DIESEL_BUILDER_BASE AS diesel-builder-runtime
 RUN --mount=type=cache,target=$CARGO_HOME/git \
     --mount=type=cache,target=$CARGO_HOME/registry \
     cargo install --root /usr/local \
-    --no-default-features --features postgres diesel_cli
+    --no-default-features --features postgres diesel_cli@1.4.1
 
 FROM scratch AS diesel-builder
 

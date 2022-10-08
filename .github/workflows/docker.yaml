@@ -77,6 +77,11 @@ on:
         type: string
         default: docker
         required: false
+      sccache:
+        description: "Enable sccache"
+        type: boolean
+        default: false
+        required: false
       startup_test:
         description: "Run startup test with docker-compose"
         type: boolean
@@ -276,6 +281,24 @@ jobs:
           key: ${{ runner.arch }}-${{ inputs.cache_tag }}-${{ hashFiles(inputs.file) }}
           restore-keys: ${{ runner.arch }}-${{ inputs.cache_tag }}-
 
+      - name: Expose GitHub Actions vars
+        if: inputs.sccache
+        uses: actions/github-script@v6
+        with:
+          script: |
+            Object.keys(process.env)
+              .filter(RegExp.prototype.test.bind(/^ACTIONS_/))
+              .forEach((name) => {
+                const value = process.env[name];
+                if (!value) return;
+                core.info(`${name}=${value}`);
+                core.exportVariable(name, value);
+            });
+            core.exportVariable('SCCACHE_BUILD_ARGS', `
+            ACTIONS_CACHE_URL=${process.env.ACTIONS_CACHE_URL || ''}
+            ACTIONS_RUNTIME_TOKEN=${process.env.ACTIONS_RUNTIME_TOKEN || ''}
+            `);
+
       - name: Build Docker image
         id: docker
         uses: docker/build-push-action@v2
@@ -283,8 +306,9 @@ jobs:
           file: ${{ inputs.file }}
           context: ${{ inputs.context }}
           build-args: |
-            ${{ secrets.build_args }}
+            ${{ env.SCCACHE_BUILD_ARGS }}
             ${{ inputs.build_args }}
+            ${{ secrets.build_args }}
           ssh: ${{ steps.docker_args.outputs.ssh }}
           cache-from: ${{ steps.docker_args.outputs.cache_from }}
           cache-to: ${{ steps.docker_args.outputs.cache_to }}

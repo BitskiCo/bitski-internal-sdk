@@ -116,12 +116,12 @@ on:
       dockle:
         description: "Lint built container with Dockle"
         type: boolean
-        default: true
+        default: false
         required: false
       trivy:
         description: "Scan built container for vulnerabilities with Trivy"
         type: boolean
-        default: true
+        default: false
         required: false
     secrets:
       registry_password:

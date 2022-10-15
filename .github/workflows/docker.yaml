@@ -346,12 +346,14 @@ jobs:
           IMAGE_ENV_NAME: ${{ inputs.startup_image_env_name }}
           STARTUP_TIMEOUT: ${{ inputs.startup_timeout }}
         run: |
+          set +e
+
           if [[ -n "$IMAGE_ENV_NAME" ]]; then
             eval "export $IMAGE_ENV_NAME=$LOCAL_IMAGE"
           fi
 
           echo '::group::docker compose create'
-          docker compose --file "$FILE" create
+          docker compose --file "$FILE" create --force-recreate
           echo '::endgroup::'
 
           echo '::group::docker compose up'
@@ -365,7 +367,7 @@ jobs:
 
           echo '::group::docker compose down'
           docker compose --file "$FILE" kill
-          docker compose --file "$FILE" down
+          docker compose --file "$FILE" down --remove-orphans
           echo '::endgroup::'
 
           exit $EXIT_CODE

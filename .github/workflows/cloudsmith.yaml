@@ -1,0 +1,83 @@
+name: Docker
+
+on:
+  workflow_call:
+    inputs:
+      packages:
+        description: |
+          Packages to publish. Package files must be in a directory of the same
+          name, e.g. `bitski-common` files are in `./bitski-common`.
+        type: string
+        required: true
+      runs-on:
+        description: The type of machine to run the job on
+        type: string
+        default: ubuntu-latest
+        required: false
+      cargo-registries-token-env-name:
+        description: |
+          The env variable name for the Cargo registry publish token
+        type: string
+        default: CARGO_REGISTRIES_BITSKI_RUST_TOKEN
+        required: false
+    secrets:
+      cloudsmith_api_key:
+        description: Cloudsmith API Key
+        required: true
+      cloudsmith_service_account_token:
+        description: Cloudsmith publish service account token
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ${{ inputs.runs-on }}
+    container: ghcr.io/bitskico/rust-sdk
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure sccache
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Sync Rustup with rust-toolchain.toml
+        run: rustup show
+
+      - name: Configure Cloudsmith
+        run: |
+          git config --global credential.helper store
+          echo "https://token:${{ secrets.cloudsmith_api_key }}@dl.cloudsmith.io" > ~/.git-credentials
+
+      - name: Run cargo publish
+        env:
+          ${{ inputs.cargo-registries-token-env-name }}: ${{ secrets.cloudsmith_service_account_token }}
+          PACKAGES: ${{ inputs.packages }}
+        run: |
+          set -e
+
+          # Get the parent ref
+          if [ -n "$GITHUB_BASE_REF" ]; then
+            REF="origin/$GITHUB_BASE_REF"
+          else
+            REF='HEAD~1'
+          fi
+
+          # Use dry run for pull requests
+          if ${{ github.event_name != 'workflow_run' }}; then
+            DRY_RUN=--dry-run
+          fi
+
+          # Only publish if the version changed
+          for PACKAGE in $(echo "$PACKAGES" | xargs -n 1); do
+            if git diff "$REF" "$PACKAGE/Cargo.toml" | grep '+version '; then
+              cargo publish --package "$PACKAGE" $DRY_RUN
+            fi
+          done

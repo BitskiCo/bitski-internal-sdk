@@ -21,10 +21,10 @@ on:
         default: CARGO_REGISTRIES_BITSKI_RUST_TOKEN
         required: false
     secrets:
-      cloudsmith_api_key:
+      cloudsmith-api-key:
         description: Cloudsmith API Key
         required: true
-      cloudsmith_service_account_token:
+      cloudsmith-service-account-token:
         description: Cloudsmith publish service account token
         required: true
 
@@ -54,14 +54,13 @@ jobs:
       - name: Configure Cloudsmith
         run: |
           git config --global credential.helper store
-          echo "https://token:${{ secrets.cloudsmith_api_key }}@dl.cloudsmith.io" > ~/.git-credentials
+          echo "https://token:${{ secrets.cloudsmith-api-key }}@dl.cloudsmith.io" > ~/.git-credentials
 
       - name: Run cargo publish
         env:
-          ${{ inputs.cargo-registries-token-env-name }}: ${{ secrets.cloudsmith_service_account_token }}
           PACKAGES: ${{ inputs.packages }}
         run: |
-          set -e
+          export "${{ inputs.cargo-registries-token-env-name }}=${{ secrets.cloudsmith-service-account-token }}"
 
           # Get the parent ref
           if [ -n "$GITHUB_BASE_REF" ]; then
@@ -78,6 +77,6 @@ jobs:
           # Only publish if the version changed
           for PACKAGE in $(echo "$PACKAGES" | xargs -n 1); do
             if git diff "$REF" "$PACKAGE/Cargo.toml" | grep '+version '; then
-              cargo publish --package "$PACKAGE" $DRY_RUN
+              cargo publish --package "$PACKAGE" $DRY_RUN || exit 1
             fi
           done

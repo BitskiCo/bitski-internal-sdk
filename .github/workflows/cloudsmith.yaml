@@ -1,4 +1,4 @@
-name: Docker
+name: Cloudsmith
 
 on:
   workflow_call:
@@ -9,6 +9,10 @@ on:
           name, e.g. `bitski-common` files are in `./bitski-common`.
         type: string
         required: true
+      dry-run:
+        description: If true, use dry-run mode
+        type: boolean
+        default: true
       runs-on:
         description: The type of machine to run the job on
         type: string
@@ -70,7 +74,7 @@ jobs:
           fi
 
           # Use dry run for pull requests
-          if ${{ github.event_name != 'workflow_run' }}; then
+          if ${{ inputs.dry-run }}; then
             DRY_RUN=--dry-run
           fi
 

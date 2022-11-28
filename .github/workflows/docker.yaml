@@ -145,8 +145,9 @@ jobs:
     name: Docker image
     runs-on: ${{ inputs.runs-on }}
     permissions:
-      contents: read
-      packages: write
+      actions: write # cache
+      contents: read # git clone
+      packages: write # publish Docker image
     env:
       TAGS: ${{ inputs.tags }}
       LOCAL_IMAGE: 127.0.0.1:5000/${{ github.sha }}

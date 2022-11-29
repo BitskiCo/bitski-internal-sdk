@@ -34,7 +34,8 @@ on:
         required: true
 
 permissions:
-  contents: read
+  actions: write # sccache
+  contents: read # git clone
 
 jobs:
   publish:
@@ -46,6 +47,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure Cloudsmith
+        run: |
+          git config --global credential.helper store
+          echo "https://token:${{ secrets.cloudsmith-api-key }}@dl.cloudsmith.io" > ~/.git-credentials
+
       - name: Configure sccache
         uses: actions/github-script@v6
         with:
@@ -55,11 +61,6 @@ jobs:
 
       - name: Sync Rustup with rust-toolchain.toml
         run: rustup show
-
-      - name: Configure Cloudsmith
-        run: |
-          git config --global credential.helper store
-          echo "https://token:${{ secrets.cloudsmith-api-key }}@dl.cloudsmith.io" > ~/.git-credentials
 
       - name: Run cargo publish
         env:

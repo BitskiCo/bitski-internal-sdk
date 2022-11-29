@@ -82,9 +82,10 @@ jobs:
           # Only publish if the version changed
           for PACKAGE in $(echo "$PACKAGES" | xargs -n 1); do
             if git diff "$REF" "$PACKAGE/Cargo.toml" | grep '+version '; then
-              if [ -n "$PACKAGE" && "$PACKAGE" != '.' ]; then
-                PACKAGE_FLAG="--package $PACKAGE"
+              if [ -n "$PACKAGE" ] && [ "$PACKAGE" != '.' ]; then
+                PACKAGE_FLAG="--package=$PACKAGE"
               fi
               cargo publish $PACKAGE_FLAG $DRY_RUN || exit 1
+              unset PACKAGE_FLAG
             fi
           done

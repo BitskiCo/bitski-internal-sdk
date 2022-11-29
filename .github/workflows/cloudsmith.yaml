@@ -8,7 +8,8 @@ on:
           Packages to publish. Package files must be in a directory of the same
           name, e.g. `bitski-common` files are in `./bitski-common`.
         type: string
-        required: true
+        required: false
+        default: .
       dry-run:
         description: If true, use dry-run mode
         type: boolean
@@ -81,6 +82,9 @@ jobs:
           # Only publish if the version changed
           for PACKAGE in $(echo "$PACKAGES" | xargs -n 1); do
             if git diff "$REF" "$PACKAGE/Cargo.toml" | grep '+version '; then
-              cargo publish --package "$PACKAGE" $DRY_RUN || exit 1
+              if [ -n "$PACKAGE" && "$PACKAGE" != '.' ]; then
+                PACKAGE_FLAG="--package $PACKAGE"
+              fi
+              cargo publish $PACKAGE_FLAG $DRY_RUN || exit 1
             fi
           done

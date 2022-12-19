@@ -83,6 +83,16 @@ jobs:
           # Only publish if the version changed
           for PACKAGE in $(echo "$PACKAGES" | xargs -n 1); do
             if git diff "$REF" "$PACKAGE/Cargo.toml" | grep '+version '; then
+
+              # Wait for Cloudsmith to publish package
+              if ${{ !inputs.dry-run }}; then
+                if [ -n "FIRST_PACKAGE" ]; then
+                  FIRST_PACKAGE=1
+                else
+                  sleep 10
+                fi
+              fi
+
               if [ -n "$PACKAGE" ] && [ "$PACKAGE" != '.' ]; then
                 PACKAGE_FLAG="--package=$PACKAGE"
               fi

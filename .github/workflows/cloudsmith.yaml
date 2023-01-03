@@ -72,7 +72,7 @@ jobs:
           if [ -n "$GITHUB_BASE_REF" ]; then
             REF="origin/$GITHUB_BASE_REF"
           else
-            REF='HEAD~1'
+            REF='HEAD^'
           fi
 
           # Use dry run for pull requests
@@ -82,7 +82,9 @@ jobs:
 
           # Only publish if the version changed
           for PACKAGE in $(echo "$PACKAGES" | xargs -n 1); do
-            if git diff "$REF" "$PACKAGE/Cargo.toml" | grep '+version '; then
+            # WORKAROUND: always publish on push to main, allow Cloudsmith to fail async
+            DIFF="$(git diff "$REF" "$PACKAGE/Cargo.toml" || echo '+version ')"
+            if echo "$DIFF" | grep '+version '; then
               if [ -n "$PACKAGE" ] && [ "$PACKAGE" != '.' ]; then
                 PACKAGE_FLAG="--package=$PACKAGE"
               fi

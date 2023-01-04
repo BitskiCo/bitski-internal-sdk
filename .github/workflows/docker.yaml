@@ -296,7 +296,6 @@ jobs:
             ACTIONS_CACHE_URL=${process.env.ACTIONS_CACHE_URL || ''}
             ACTIONS_RUNTIME_TOKEN=${process.env.ACTIONS_RUNTIME_TOKEN || ''}
             GITHUB_SHA=${context.sha}
-            SCCACHE_GHA_CACHE_MODE=${process.env.GITHUB_REF_PROTECTED === 'true' ? 'write' : ''}
             `);
 
       - name: Build Docker image

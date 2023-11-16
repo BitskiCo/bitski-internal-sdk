@@ -178,10 +178,10 @@ jobs:
         run: |
           ARCH=`uname -m`
           case $ARCH in
-          amd64 | x86_64) 
+          amd64 | x86_64)
               ARCH=amd64
               ;;
-          aarch64 | arm64) 
+          aarch64 | arm64)
               ARCH=arm64
               ;;
           esac
@@ -311,6 +311,7 @@ jobs:
           ssh: ${{ steps.docker_args.outputs.ssh }}
           cache-from: ${{ steps.docker_args.outputs.cache_from }}
           cache-to: ${{ steps.docker_args.outputs.cache_to }}
+          pull: true
           push: true
           tags: ${{ env.LOCAL_IMAGE }}
           labels: ${{ steps.meta.outputs.labels }}

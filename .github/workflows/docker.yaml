@@ -230,6 +230,8 @@ jobs:
         with:
           images: ${{ env.IMAGES }}
           tags: ${{ env.TAGS }}
+        env:
+          DOCKER_METADATA_PR_HEAD_SHA: true
 
       - name: Log into Docker registry
         if: inputs.push
